@@ -444,7 +444,8 @@ static INLINE IRSB* wire_memlog(IRSB* bb_in)
             wire_log_store(bb_out, addr_tmp, addr, data_tmp, data);
             break;
          case Ity_F32:
-            wire_log_store(bb_out, addr_tmp, addr, data_tmp, IRExpr_Unop(Iop_ReinterpF32asI32, data));
+            wire_log_store(bb_out, addr_tmp, addr, data_tmp,
+               IRExpr_Unop(Iop_32Uto64, IRExpr_Unop(Iop_ReinterpF32asI32, data)));
             break;
          case Ity_F64:
             wire_log_store(bb_out, addr_tmp, addr, data_tmp, IRExpr_Unop(Iop_ReinterpF64asI64, data));
@@ -466,7 +467,8 @@ static INLINE IRSB* wire_memlog(IRSB* bb_in)
             wire_log_store(bb_out, addr_tmp1, IRExpr_Binop(Iop_Add64, addr, IRExpr_Const(IRConst_U64(8))), data_tmp1, IRExpr_Unop(Iop_ReinterpD64asI64, IRExpr_Unop(Iop_D128LOtoD64, data)));
             break;
          case Ity_F16:
-            wire_log_store(bb_out, addr_tmp, addr, data_tmp, IRExpr_Unop(Iop_16Uto64, IRExpr_Unop(Iop_ReinterpF16asI16, data)));
+            wire_log_store(bb_out, addr_tmp, addr, data_tmp,
+               IRExpr_Unop(Iop_16Uto64, IRExpr_Unop(Iop_ReinterpF16asI16, data)));
             break;
          case Ity_V256:
             wire_log_store(bb_out, addr_tmp, addr, data_tmp, IRExpr_Unop(Iop_V256to64_3, data));
