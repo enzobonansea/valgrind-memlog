@@ -1,0 +1,3 @@
+prog: custom_threshold
+vgopts: --min-block-size=512
+stderr_filter: filter_stderr

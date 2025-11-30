@@ -12,6 +12,7 @@ TOOLS = \
 		massif \
 		dhat \
 		lackey \
+		memlog \
 		none
 
 EXP_TOOLS = \

@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Filter memlog output:
+# - Keep ALLOC/FREE section markers, replacing details with ...
+# - Extract just the stored values (second column) from store logs
+# - Filter addresses in ALLOC/FREE sections
+
+sed -n \
+    -e '/===ALLOC START===/p' \
+    -e '/===ALLOC START===/,/===ALLOC END===/{/===.*===/!s/.*/\.\.\./p;}' \
+    -e '/===ALLOC END===/p' \
+    -e '/===FREE START===/p' \
+    -e '/===FREE START===/,/===FREE END===/{/===.*===/!s/.*/\.\.\./p;}' \
+    -e '/===FREE END===/p' \
+    -e '/^0x[0-9a-fA-F]* 0x/{s/^0x[0-9a-fA-F]* //p;}' \
+    | uniq

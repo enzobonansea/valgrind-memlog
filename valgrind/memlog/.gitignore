@@ -1,0 +1,29 @@
+# Build artifacts
+*.o
+*.a
+*.so
+*.la
+*.lo
+.deps/
+.libs/
+Makefile
+Makefile.in
+
+# Tool binaries
+memlog-*-linux
+memlog-*-darwin
+memlog-*-freebsd
+memlog-*-solaris
+vgpreload_memlog-*
+
+# Test binaries
+tests/basic_alloc
+tests/double_stores
+tests/int_stores
+tests/small_block
+tests/multi_alloc
+tests/custom_threshold
+tests/calloc_test
+tests/Makefile
+tests/Makefile.in
+tests/.deps/
