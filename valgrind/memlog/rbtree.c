@@ -52,7 +52,7 @@ INLINE void rb_link_node(rb_node_t *node, rb_node_t *parent, rb_node_t **linkp) 
     *linkp = node;
 }
 
-// Public: insert‐fixup
+// Public: insert-fixup
 INLINE void rb_insert_color(rb_node_t *n, rb_root_t *root) {
     // standard RB-insert fixup from CLRS
     while (n != root->root && n->parent->color == RED) {
@@ -91,7 +91,7 @@ INLINE void rb_insert_color(rb_node_t *n, rb_root_t *root) {
     root->root->color = BLACK;
 }
 
-// Public: find the node with largest key ≤ given key
+// Public: find the node with largest key <= given key
 INLINE rb_node_t *rb_search_leq(rb_root_t *root, unsigned long key) {
     rb_node_t *node = root->root;
     rb_node_t *best = NULL;
@@ -143,22 +143,22 @@ static INLINE void rb_transplant(rb_root_t *root, rb_node_t *u, rb_node_t *v) {
 // Fix red-black properties after deletion
 static INLINE void rb_delete_fixup(rb_root_t *root, rb_node_t *x, rb_node_t *parent) {
     rb_node_t *w;
-    
+
     while (x != root->root && (!x || x->color == BLACK)) {
         if (!parent) break;
-        
+
         if (x == parent->left) {
             w = parent->right;
             if (!w) break;
-            
+
             if (w->color == RED) {
                 w->color = BLACK;
                 parent->color = RED;
                 rb_rotate_left(parent, root);
                 w = parent->right;
             }
-            
-            if ((!w->left || w->left->color == BLACK) && 
+
+            if ((!w->left || w->left->color == BLACK) &&
                 (!w->right || w->right->color == BLACK)) {
                 w->color = RED;
                 x = parent;
@@ -171,7 +171,7 @@ static INLINE void rb_delete_fixup(rb_root_t *root, rb_node_t *x, rb_node_t *par
                     rb_rotate_right(w, root);
                     w = parent->right;
                 }
-                
+
                 w->color = parent->color;
                 parent->color = BLACK;
                 if (w->right)
@@ -183,15 +183,15 @@ static INLINE void rb_delete_fixup(rb_root_t *root, rb_node_t *x, rb_node_t *par
         } else {
             w = parent->left;
             if (!w) break;
-            
+
             if (w->color == RED) {
                 w->color = BLACK;
                 parent->color = RED;
                 rb_rotate_right(parent, root);
                 w = parent->left;
             }
-            
-            if ((!w->right || w->right->color == BLACK) && 
+
+            if ((!w->right || w->right->color == BLACK) &&
                 (!w->left || w->left->color == BLACK)) {
                 w->color = RED;
                 x = parent;
@@ -204,7 +204,7 @@ static INLINE void rb_delete_fixup(rb_root_t *root, rb_node_t *x, rb_node_t *par
                     rb_rotate_left(w, root);
                     w = parent->left;
                 }
-                
+
                 w->color = parent->color;
                 parent->color = BLACK;
                 if (w->left)
@@ -215,7 +215,7 @@ static INLINE void rb_delete_fixup(rb_root_t *root, rb_node_t *x, rb_node_t *par
             }
         }
     }
-    
+
     if (x)
         x->color = BLACK;
 }
@@ -225,12 +225,12 @@ static INLINE void rb_delete_fixup(rb_root_t *root, rb_node_t *x, rb_node_t *par
 rb_node_t *rb_delete(rb_root_t *root, unsigned long key) {
     rb_node_t *z = rb_search(root, key);
     if (!z) return NULL;  // Node not found
-    
+
     rb_node_t *y = z;
     rb_node_t *x;
     rb_node_t *x_parent;
     rb_color_t y_original_color = y->color;
-    
+
     if (!z->left) {
         x = z->right;
         x_parent = z->parent;
@@ -243,7 +243,7 @@ rb_node_t *rb_delete(rb_root_t *root, unsigned long key) {
         y = rb_min(z->right);
         y_original_color = y->color;
         x = y->right;
-        
+
         if (y->parent == z) {
             x_parent = y;
         } else {
@@ -252,15 +252,15 @@ rb_node_t *rb_delete(rb_root_t *root, unsigned long key) {
             y->right = z->right;
             y->right->parent = y;
         }
-        
+
         rb_transplant(root, z, y);
         y->left = z->left;
         y->left->parent = y;
         y->color = z->color;
     }
-    
+
     if (y_original_color == BLACK)
         rb_delete_fixup(root, x, x_parent);
-    
+
     return z;  // Return the deleted node so the caller can free it
 }

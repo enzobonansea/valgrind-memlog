@@ -29,6 +29,7 @@
 
 #ifndef __MC_INCLUDE_H
 #define __MC_INCLUDE_H
+
 #define MC_(str)    VGAPPEND(vgMemCheck_,str)
 
 

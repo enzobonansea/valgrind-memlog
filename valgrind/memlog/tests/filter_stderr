@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Filter out addresses and sizes (make output more stable)
+sed \
+    -e 's/0x[0-9A-Fa-f]\+/0x.../g' \
+    -e 's/size [0-9]\+/size .../g' \
+    -e '/^$/d'

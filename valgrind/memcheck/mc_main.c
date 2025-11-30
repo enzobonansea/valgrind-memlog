@@ -48,9 +48,9 @@
 #include "pub_tool_xarray.h"
 #include "pub_tool_xtree.h"
 #include "pub_tool_xtmemory.h"
+
 #include "mc_include.h"
 #include "memcheck.h"   /* for client requests */
-#include "memlog.h"
 
 /* Set to 1 to do a little more sanity checking */
 #define VG_DEBUG_MEMORY 0
@@ -8442,9 +8442,9 @@ static void mc_print_stats (void)
    }
 }
 
+
 static void mc_fini ( Int exitcode )
 {
-   memlog_fini();
    MC_(xtmemory_report) (VG_(clo_xtree_memory_file), True);
    MC_(print_malloc_stats)();
 
@@ -8551,8 +8551,6 @@ static Bool mc_mark_unaddressable_for_watchpoint (PointKind kind, Bool insert,
 
 static void mc_pre_clo_init(void)
 {
-   memlog_init();
-
    VG_(details_name)            ("Memcheck");
    VG_(details_version)         (NULL);
    VG_(details_description)     ("a memory error detector");
@@ -8562,7 +8560,7 @@ static void mc_pre_clo_init(void)
    VG_(details_avg_translation_sizeB) ( 640 );
 
    VG_(basic_tool_funcs)          (mc_post_clo_init,
-                                   memlog_instrument,
+                                   MC_(instrument),
                                    mc_fini);
 
    VG_(needs_final_IR_tidy_pass)  ( MC_(final_tidy) );
