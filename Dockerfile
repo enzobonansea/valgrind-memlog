@@ -40,7 +40,7 @@ RUN mkdir -p /usr/cpu2017 \
 # Stage 3: Test programs build
 # =============================================================================
 FROM base AS test-builder
-COPY alloc.c /tmp/alloc.c
+COPY examples/alloc.c /tmp/alloc.c
 RUN gcc -mavx -mavx2 -O0 -g -o /tmp/alloc /tmp/alloc.c
 
 # =============================================================================
@@ -77,17 +77,17 @@ COPY spec/memlog-monitor.cfg /usr/cpu2017/config/memlog-monitor.cfg
 RUN sed -i 's/\r$//' /usr/cpu2017/config/memlog-monitor.cfg
 
 # Copy and setup menu
-COPY menu.sh /usr/local/bin/menu.sh
+COPY runtime/menu.sh /usr/local/bin/menu.sh
 RUN sed -i 's/\r$//' /usr/local/bin/menu.sh \
     && chmod +x /usr/local/bin/menu.sh
 
 # Copy analyze script
-COPY analyze.sh /usr/local/bin/analyze.sh
+COPY runtime/analyze.sh /usr/local/bin/analyze.sh
 RUN sed -i 's/\r$//' /usr/local/bin/analyze.sh \
     && chmod +x /usr/local/bin/analyze.sh
 
 # Copy parser
-COPY parser.py /usr/parser.py
+COPY tools/parser.py /usr/parser.py
 RUN sed -i 's/\r$//' /usr/parser.py \
     && chmod +x /usr/parser.py
 
