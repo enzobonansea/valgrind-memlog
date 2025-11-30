@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Repository version information (will be updated during CI build)
-MAIN_REPO_COMMIT="MAIN_COMMIT_PLACEHOLDER"
+MAIN_REPO_COMMIT="026bec1"
 
 # Display version information
 echo "===== Repository Information ====="
