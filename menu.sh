@@ -27,15 +27,13 @@ while true; do
             /bin/bash
             ;;
         2)
-            /usr/local/bin/spec/fprate.sh
+            /usr/local/bin/analyze.sh fprate
             /bin/bash
             ;;
         3)
             read -p "Enter SPEC app name: " app_name
             if [ -n "$app_name" ]; then
-                cd /usr/cpu2017
-                . ./shrc
-                runcpu --action=run --config=memlog-monitor.cfg --size=test $app_name
+                /usr/local/bin/analyze.sh "spec:$app_name"
             else
                 echo "No app name provided."
             fi
