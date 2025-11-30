@@ -11,24 +11,8 @@ jobs:
     outputs:
       tag: ${{ steps.get_tag.outputs.tag }}
     steps:
-      - name: Checkout repository (no submodules)
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: false
-
-      # Removed global git config for GitLab submodules
-
-      - name: Set up SSH for GitLab submodules
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GITLAB_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan gitlab.licar.exp.dc.uba.ar >> ~/.ssh/known_hosts
-
-      - name: Manually update submodules
-        run: |
-          git submodule sync
-          git submodule update --init --recursive
 
       - name: Make scripts executable
         run: |
@@ -39,26 +23,22 @@ jobs:
         id: get_tag
         run: |
           MAIN_COMMIT=$(git rev-parse --short HEAD)
-          PY_COMPRESS_COMMIT=$(git -C py-Compress-Simulator rev-parse --short HEAD 2>/dev/null || echo "no-submodule")
-          IMAGE_TAG="fpvi-${MAIN_COMMIT}_pycs-${PY_COMPRESS_COMMIT}"
+          IMAGE_TAG="memlog-${MAIN_COMMIT}"
           echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "main_commit=$MAIN_COMMIT" >> $GITHUB_OUTPUT
-          echo "py_compress_commit=$PY_COMPRESS_COMMIT" >> $GITHUB_OUTPUT
           echo "Image tag: $IMAGE_TAG"
-          
+
       - name: Update menu.sh with commit information
         run: |
           MAIN_COMMIT=$(git rev-parse --short HEAD)
-          PY_COMPRESS_COMMIT=$(git -C py-Compress-Simulator rev-parse --short HEAD 2>/dev/null || echo "no-submodule")
-          
-          # Update the placeholders in menu.sh with actual commit values
+
+          # Update the placeholder in menu.sh with actual commit value
           sed -i "s/MAIN_COMMIT_PLACEHOLDER/$MAIN_COMMIT/g" menu.sh
-          sed -i "s/PY_COMPRESS_COMMIT_PLACEHOLDER/$PY_COMPRESS_COMMIT/g" menu.sh
-          
+
           # Show the updated file for verification
           echo "Updated menu.sh:"
           cat menu.sh
-          
+
       - name: Debug output
         run: |
           echo "Output tag: ${{ steps.get_tag.outputs.tag }}"
@@ -88,7 +68,7 @@ jobs:
           echo "Tag from checkout-code: ${{ needs.checkout-code.outputs.tag }}"
           if [ -z "${{ needs.checkout-code.outputs.tag }}" ]; then
             echo "ERROR: Docker image tag is empty. Using default tag..."
-            echo "DEFAULT_TAG=fpvi-debug-$(date +%s)" >> $GITHUB_ENV
+            echo "DEFAULT_TAG=memlog-debug-$(date +%s)" >> $GITHUB_ENV
           else
             echo "TAG=${{ needs.checkout-code.outputs.tag }}" >> $GITHUB_ENV
           fi
@@ -130,20 +110,20 @@ jobs:
             echo "Using checkout tag: ${{ env.TAG }}"
             TAG="${{ env.TAG }}"
           fi
-          
+
           echo "Building Docker image with tag: $TAG"
-          docker build -t floating-point-vectors-inspector:$TAG .
-          
+          docker build -t memlog:$TAG .
+
           echo "Pushing image to ECR with tag: $TAG"
-          docker tag floating-point-vectors-inspector:$TAG 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/floating-point-vectors-inspector:$TAG
-          docker tag floating-point-vectors-inspector:$TAG 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/floating-point-vectors-inspector:latest
-          
+          docker tag memlog:$TAG 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/memlog:$TAG
+          docker tag memlog:$TAG 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/memlog:latest
+
           # Push both the version-specific tag and the latest tag
-          docker push 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/floating-point-vectors-inspector:$TAG
-          docker push 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/floating-point-vectors-inspector:latest
-          
+          docker push 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/memlog:$TAG
+          docker push 764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/memlog:latest
+
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          
+
   notify:
     needs: [checkout-code, build-and-push-image]
     runs-on: ubuntu-latest

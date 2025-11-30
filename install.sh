@@ -1,23 +1,21 @@
 #!/bin/bash
 set -e
 
-# Nombre de la imagen y tar
-IMAGE_NAME="fpvi"
+# Image name and tar
+IMAGE_NAME="memlog"
 IMAGE_TAG="latest"
 TAR_PATH="$HOME/${IMAGE_NAME}.tar"
 
 # Get commit information for placeholders
 echo "[1/4] Getting commit information..."
 MAIN_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-PY_COMPRESS_COMMIT=$(git -C py-Compress-Simulator rev-parse --short HEAD 2>/dev/null || echo "no-submodule")
 
 # Update menu.sh with commit information
 echo "Updating menu.sh with commit information..."
 if [ -f menu.sh ]; then
     cp menu.sh menu.sh.bak
     sed -i "s/MAIN_COMMIT_PLACEHOLDER/$MAIN_COMMIT/g" menu.sh
-    sed -i "s/PY_COMPRESS_COMMIT_PLACEHOLDER/$PY_COMPRESS_COMMIT/g" menu.sh
-    echo "Updated menu.sh with main commit: $MAIN_COMMIT and py-compress commit: $PY_COMPRESS_COMMIT"
+    echo "Updated menu.sh with commit: $MAIN_COMMIT"
 fi
 
 echo "[2/4] Building Docker image..."
@@ -35,4 +33,4 @@ if [ -f menu.sh.bak ]; then
     echo "Restored original menu.sh"
 fi
 
-echo "✅ Done. Image '${IMAGE_NAME}:${IMAGE_TAG}' is available. Run with: docker run -it --rm fpvi:latest"
+echo "Done. Image '${IMAGE_NAME}:${IMAGE_TAG}' is available. Run with: docker run -it --rm memlog:latest"
