@@ -40,6 +40,7 @@
 #define INLINE    inline __attribute__((always_inline))
 #define MAX_LOG_ENTRIES 3000000
 #define PAGE_SIZE 4096
+#define ML_MALLOC_ALIGNMENT 32  /* 32-byte alignment for AVX support */
 
 /*------------------------------------------------------------*/
 /*--- Command line options                                 ---*/
@@ -274,12 +275,12 @@ static void die_block(ThreadId tid, void* p)
 
 static void* ml_malloc(ThreadId tid, SizeT szB)
 {
-   return new_block(tid, szB, VG_(clo_alignment), False);
+   return new_block(tid, szB, ML_MALLOC_ALIGNMENT, False);
 }
 
 static void* ml___builtin_new(ThreadId tid, SizeT szB)
 {
-   return new_block(tid, szB, VG_(clo_alignment), False);
+   return new_block(tid, szB, ML_MALLOC_ALIGNMENT, False);
 }
 
 static void* ml___builtin_new_aligned(ThreadId tid, SizeT szB, SizeT alignB, SizeT orig_alignB)
@@ -289,7 +290,7 @@ static void* ml___builtin_new_aligned(ThreadId tid, SizeT szB, SizeT alignB, Siz
 
 static void* ml___builtin_vec_new(ThreadId tid, SizeT szB)
 {
-   return new_block(tid, szB, VG_(clo_alignment), False);
+   return new_block(tid, szB, ML_MALLOC_ALIGNMENT, False);
 }
 
 static void* ml___builtin_vec_new_aligned(ThreadId tid, SizeT szB, SizeT alignB, SizeT orig_alignB)
@@ -304,7 +305,7 @@ static void* ml_memalign(ThreadId tid, SizeT alignB, SizeT orig_alignB, SizeT sz
 
 static void* ml_calloc(ThreadId tid, SizeT nmemb, SizeT size1)
 {
-   return new_block(tid, nmemb * size1, VG_(clo_alignment), True);
+   return new_block(tid, nmemb * size1, ML_MALLOC_ALIGNMENT, True);
 }
 
 static void ml_free(ThreadId tid, void* p)

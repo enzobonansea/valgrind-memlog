@@ -1,0 +1,2 @@
+prog: avx_stores
+vgopts: --min-block-size=1024

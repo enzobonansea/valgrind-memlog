@@ -7,7 +7,8 @@ noinst_PROGRAMS = \
 	small_block \
 	multi_alloc \
 	custom_threshold \
-	calloc_test
+	calloc_test \
+	avx_stores
 
 EXTRA_DIST = \
 	basic_alloc.stderr.exp basic_alloc.vgtest \
@@ -16,7 +17,8 @@ EXTRA_DIST = \
 	small_block.stderr.exp small_block.vgtest \
 	multi_alloc.stderr.exp multi_alloc.vgtest \
 	custom_threshold.stderr.exp custom_threshold.vgtest \
-	calloc_test.stderr.exp calloc_test.vgtest
+	calloc_test.stderr.exp calloc_test.vgtest \
+	avx_stores.stderr.exp avx_stores.vgtest
 
 AM_CFLAGS   = $(WERROR) -Winline -Wall -Wshadow -Wno-long-long \
               @FLAG_FNO_STACK_PROTECTOR@ $(AM_FLAG_M3264_PRI) -O0
@@ -35,3 +37,5 @@ small_block_SOURCES = small_block.c
 multi_alloc_SOURCES = multi_alloc.c
 custom_threshold_SOURCES = custom_threshold.c
 calloc_test_SOURCES = calloc_test.c
+avx_stores_SOURCES = avx_stores.c
+avx_stores_CFLAGS = $(AM_CFLAGS) -mavx -mavx2
