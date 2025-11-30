@@ -27,15 +27,15 @@ LOG_FILE="/tmp/${EXECUTABLE_NAME}-${TIMESTAMP}.log"
 echo "Running valgrind on $EXECUTABLE..."
 echo "Log file: $LOG_FILE"
 
-# Run valgrind
-/opt/valgrind/inst/bin/valgrind --tool=memcheck --leak-check=no --track-origins=no --log-file="$LOG_FILE" --undef-value-errors=no --time-stamp=yes -- "$EXECUTABLE"
+# Run valgrind with memlog tool
+/opt/valgrind/inst/bin/valgrind --tool=memlog --min-block-size=4096 --log-file="$LOG_FILE" -- "$EXECUTABLE"
 
 # Check if valgrind ran successfully
 if [ $? -eq 0 ]; then
     echo "Valgrind completed successfully. Parsing log file..."
     
-    # Run the memory log parser
-    /usr/memlog_parser.py "$LOG_FILE"
+    # Run the parser
+    /usr/parser.py "$LOG_FILE"
     
     echo "Analysis complete. Log file: $LOG_FILE"
 else
