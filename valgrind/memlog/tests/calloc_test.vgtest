@@ -1,0 +1,3 @@
+prog: calloc_test
+vgopts: --min-block-size=4096
+stderr_filter: filter_stderr

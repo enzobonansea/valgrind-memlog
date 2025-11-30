@@ -1,0 +1,17 @@
+===ALLOC START===
+...
+===ALLOC END===
+0xaaaaaaaaaaaaaaaa
+0xbbbbbbbbbbbbbbbb
+===ALLOC START===
+...
+===ALLOC END===
+0xcccccccccccccccc
+0xdddddddddddddddd
+0xeeeeeeeeeeeeeeee
+===FREE START===
+...
+===FREE END===
+===FREE START===
+...
+===FREE END===

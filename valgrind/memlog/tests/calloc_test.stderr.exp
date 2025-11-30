@@ -1,0 +1,9 @@
+===ALLOC START===
+...
+===ALLOC END===
+0xcalloc00000001
+0xcalloc00000002
+0xcalloc00000003
+===FREE START===
+...
+===FREE END===

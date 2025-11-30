@@ -1,0 +1,8 @@
+===ALLOC START===
+...
+===ALLOC END===
+0x1234567890abcdef
+0xfedcba0987654321
+===FREE START===
+...
+===FREE END===
