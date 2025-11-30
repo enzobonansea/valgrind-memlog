@@ -282,7 +282,7 @@ static void* ml___builtin_new(ThreadId tid, SizeT szB)
    return new_block(tid, szB, VG_(clo_alignment), False);
 }
 
-static void* ml___builtin_new_aligned(ThreadId tid, SizeT szB, SizeT alignB)
+static void* ml___builtin_new_aligned(ThreadId tid, SizeT szB, SizeT alignB, SizeT orig_alignB)
 {
    return new_block(tid, szB, alignB, False);
 }
@@ -292,12 +292,12 @@ static void* ml___builtin_vec_new(ThreadId tid, SizeT szB)
    return new_block(tid, szB, VG_(clo_alignment), False);
 }
 
-static void* ml___builtin_vec_new_aligned(ThreadId tid, SizeT szB, SizeT alignB)
+static void* ml___builtin_vec_new_aligned(ThreadId tid, SizeT szB, SizeT alignB, SizeT orig_alignB)
 {
    return new_block(tid, szB, alignB, False);
 }
 
-static void* ml_memalign(ThreadId tid, SizeT alignB, SizeT szB)
+static void* ml_memalign(ThreadId tid, SizeT alignB, SizeT orig_alignB, SizeT szB)
 {
    return new_block(tid, szB, alignB, False);
 }
@@ -374,19 +374,10 @@ static SizeT ml_malloc_usable_size(ThreadId tid, void* p)
 
 static INLINE Bool is_app_code(const VexGuestExtents* vge)
 {
-   Bool vge_has_app_code = False;
-   for (int i = 0; i < vge->n_used && !vge_has_app_code; i++) {
-      Addr addr = vge->base[i];
-      const NSegment* seg = VG_(am_find_nsegment)(addr);
-      if (seg) {
-         const HChar* filename = VG_(am_get_filename)(seg);
-         if (filename) {
-            vge_has_app_code = VG_(strncmp)(filename, "/usr", 4) == 0;
-         }
-      }
-   }
-
-   return vge_has_app_code;
+   /* Instrument all code - the is_tracked() check in log_store()
+    * ensures we only log stores to tracked heap blocks */
+   (void)vge;
+   return True;
 }
 
 static INLINE void wire_log_store(IRSB* bb_out,
@@ -467,8 +458,7 @@ static INLINE IRSB* wire_memlog(IRSB* bb_in)
             wire_log_store(bb_out, addr_tmp1, IRExpr_Binop(Iop_Add64, addr, IRExpr_Const(IRConst_U64(8))), data_tmp1, IRExpr_Unop(Iop_ReinterpD64asI64, IRExpr_Unop(Iop_D128LOtoD64, data)));
             break;
          case Ity_F16:
-            wire_log_store(bb_out, addr_tmp, addr, data_tmp,
-               IRExpr_Unop(Iop_16Uto64, IRExpr_Unop(Iop_ReinterpF16asI16, data)));
+            /* F16 not fully supported - skip for now */
             break;
          case Ity_V256:
             wire_log_store(bb_out, addr_tmp, addr, data_tmp, IRExpr_Unop(Iop_V256to64_3, data));
