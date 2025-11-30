@@ -13,7 +13,7 @@ else
   echo "No IMAGE_TAG provided and .ecr_image_tag file not found, using 'latest' tag."
   IMAGE_TAG="latest"
 fi
-ECR_IMAGE="764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/floating-point-vectors-inspector:${IMAGE_TAG}"
+ECR_IMAGE="764515255972.dkr.ecr.eu-north-1.amazonaws.com/computer-science/memlog:${IMAGE_TAG}"
 
 echo "=== Installing Docker and AWS CLI ==="
 sudo apt-get update
