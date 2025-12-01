@@ -373,14 +373,6 @@ static SizeT ml_malloc_usable_size(ThreadId tid, void* p)
 /*--- Instrumentation                                      ---*/
 /*------------------------------------------------------------*/
 
-static INLINE Bool is_app_code(const VexGuestExtents* vge)
-{
-   /* Instrument all code - the is_tracked() check in log_store()
-    * ensures we only log stores to tracked heap blocks */
-   (void)vge;
-   return True;
-}
-
 static INLINE void wire_log_store(IRSB* bb_out,
    IRTemp  addr_tmp,
    IRExpr* addr,
@@ -490,7 +482,7 @@ static IRSB* ml_instrument(VgCallbackClosure* closure,
     IRType gWordTy,
     IRType hWordTy)
 {
-    return is_app_code(vge) ? wire_memlog(bb_in) : bb_in;
+    return wire_memlog(bb_in);
 }
 
 /*------------------------------------------------------------*/
