@@ -31,9 +31,3 @@ tools/      # utilities (parser.py)
 spec/       # SPEC CPU config
 valgrind/   # valgrind + memlog source
 ```
-
-## Troubleshooting
-
-**Docker permission denied**: `sudo usermod -aG docker $USER` then re-login
-
-**WSL2**: Use `/mnt/c/...` paths, ensure Docker Desktop WSL2 integration is enabled
