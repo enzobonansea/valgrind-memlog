@@ -115,10 +115,10 @@ class LiveAlloc:
                 pass
             return
 
-        # Determine type based on alignment
+        # Determine type based on alignment (32bits/64bits - not assuming float/double)
         type_name = "object"
         if self.aligned32:
-            type_name = "double" if self.aligned64 else "float"
+            type_name = "64bits" if self.aligned64 else "32bits"
 
         target = out_dir / f"{self.base_core}_{type_name}_{self.usage_num}.stores"
 
