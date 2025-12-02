@@ -1,0 +1,3 @@
+prog: stack_array
+vgopts:
+stderr_filter: filter_stderr

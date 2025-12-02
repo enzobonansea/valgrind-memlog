@@ -1,4 +1,4 @@
-dist_noinst_SCRIPTS = filter_stderr
+dist_noinst_SCRIPTS = filter_stderr filter_stderr_with_addr
 
 noinst_PROGRAMS = \
 	basic_alloc \
@@ -8,7 +8,10 @@ noinst_PROGRAMS = \
 	multi_alloc \
 	custom_threshold \
 	calloc_test \
-	avx_stores
+	avx_stores \
+	random_offsets \
+	stack_array \
+	all_types
 
 EXTRA_DIST = \
 	basic_alloc.stderr.exp basic_alloc.vgtest \
@@ -18,7 +21,10 @@ EXTRA_DIST = \
 	multi_alloc.stderr.exp multi_alloc.vgtest \
 	custom_threshold.stderr.exp custom_threshold.vgtest \
 	calloc_test.stderr.exp calloc_test.vgtest \
-	avx_stores.stderr.exp avx_stores.vgtest
+	avx_stores.stderr.exp avx_stores.vgtest \
+	random_offsets.stderr.exp random_offsets.vgtest \
+	stack_array.stderr.exp stack_array.vgtest \
+	all_types.stderr.exp all_types.vgtest
 
 AM_CFLAGS   = $(WERROR) -Winline -Wall -Wshadow -Wno-long-long \
               @FLAG_FNO_STACK_PROTECTOR@ $(AM_FLAG_M3264_PRI) -O0
@@ -39,3 +45,6 @@ custom_threshold_SOURCES = custom_threshold.c
 calloc_test_SOURCES = calloc_test.c
 avx_stores_SOURCES = avx_stores.c
 avx_stores_CFLAGS = $(AM_CFLAGS) -mavx -mavx2
+random_offsets_SOURCES = random_offsets.c
+stack_array_SOURCES = stack_array.c
+all_types_SOURCES = all_types.c

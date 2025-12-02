@@ -1,0 +1,68 @@
+===ALLOC START===
+...
+===ALLOC END===
+0x7f
+0x80
+0x42
+===FREE START===
+...
+===FREE END===
+===ALLOC START===
+...
+===ALLOC END===
+0x1234
+0xabcd
+0x7fff
+===FREE START===
+...
+===FREE END===
+===ALLOC START===
+...
+===ALLOC END===
+0x12345678
+0xdeadbeef
+0xcafebabe
+===FREE START===
+...
+===FREE END===
+===ALLOC START===
+...
+===ALLOC END===
+0x123456789abcdef0
+0xdeadbeefcafebabe
+===FREE START===
+...
+===FREE END===
+===ALLOC START===
+...
+===ALLOC END===
+0x40490fdb
+0x402df854
+0x80000000
+0x7f800000
+===FREE START===
+...
+===FREE END===
+===ALLOC START===
+...
+===ALLOC END===
+0x400921fb54442d18
+0x4005bf0a8b145769
+0x8000000000000000
+===FREE START===
+...
+===FREE END===
+===ALLOC START===
+...
+===ALLOC END===
+0x12345678
+0x40490fdb
+0x400921fb54442d18
+0xdeadbeefcafebabe
+0xaabbccdd
+0x402df854
+0x4005bf0a8b145769
+0x1122334455667788
+===FREE START===
+...
+===FREE END===

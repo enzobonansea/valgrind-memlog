@@ -34,8 +34,16 @@
 #include "pub_tool_tooliface.h"
 #include "pub_tool_execontext.h"
 
-#include "memlog.h"
 #include "rbtree.h"
+
+/* Include public header for client request IDs */
+#include "valgrind.h"
+
+/* Client request IDs - must match memlog.h */
+typedef enum {
+   VG_USERREQ__MEMLOG_TRACK_BLOCK = VG_USERREQ_TOOL_BASE('M','L'),
+   VG_USERREQ__MEMLOG_UNTRACK_BLOCK
+} Vg_MemlogClientRequest;
 
 #define INLINE    inline __attribute__((always_inline))
 #define MAX_LOG_ENTRIES 3000000
@@ -486,6 +494,53 @@ static IRSB* ml_instrument(VgCallbackClosure* closure,
 }
 
 /*------------------------------------------------------------*/
+/*--- Client request handler                               ---*/
+/*------------------------------------------------------------*/
+
+static Bool ml_handle_client_request(ThreadId tid, UWord* arg, UWord* ret)
+{
+   switch (arg[0]) {
+   case VG_USERREQ__MEMLOG_TRACK_BLOCK: {
+      Addr  addr = arg[1];
+      SizeT size = arg[2];
+
+      if (size > 0) {
+         Block* bk = VG_(malloc)("memlog.client_block", sizeof(Block));
+         bk->payload  = addr;
+         bk->req_szB  = size;
+         bk->alloc_ec = VG_(record_ExeContext)(tid, 0);
+
+         insert_block_rb(bk);
+         add_to_buffer(LOG_ALLOC, addr, 0, size, bk->alloc_ec);
+      }
+      *ret = 0;
+      return True;
+   }
+
+   case VG_USERREQ__MEMLOG_UNTRACK_BLOCK: {
+      Addr addr = arg[1];
+
+      Block* bk = find_block_containing(addr);
+      if (bk && bk->payload == addr) {
+         ExeContext* ec = VG_(record_ExeContext)(tid, 0);
+         add_to_buffer(LOG_FREE, addr, 0, bk->req_szB, ec);
+
+         rb_node_t *deleted = rb_delete(&tracked_blocks, bk->payload);
+         if (deleted) {
+            VG_(free)(deleted);
+         }
+         VG_(free)(bk);
+      }
+      *ret = 0;
+      return True;
+   }
+
+   default:
+      return False;
+   }
+}
+
+/*------------------------------------------------------------*/
 /*--- Cleanup helpers                                      ---*/
 /*------------------------------------------------------------*/
 
@@ -539,6 +594,8 @@ static void ml_pre_clo_init(void)
    VG_(needs_command_line_options)(ml_process_cmd_line_option,
                                    ml_print_usage,
                                    ml_print_debug_usage);
+
+   VG_(needs_client_requests)(ml_handle_client_request);
 
    VG_(needs_malloc_replacement)(ml_malloc,
                                  ml___builtin_new,
