@@ -72,6 +72,7 @@ class LiveAlloc:
         "base_core",
         "tmp_path",      # temp file of the alloc
         "usage_num",
+        "stack_lines",   # allocation site stack trace
     )
 
     def __init__(self, start: int, size: int, base_core: str, out_dir: Path, usage_num: int):
@@ -83,6 +84,7 @@ class LiveAlloc:
         self.base_core = base_core
         self.store_count = 0
         self.usage_num = usage_num
+        self.stack_lines: List[str] = []
         # Temporal per-alloc
         self.tmp_path = out_dir / f".{base_core}_{usage_num}.tmp"
 
@@ -93,7 +95,7 @@ class LiveAlloc:
             raise ValueError(f"Store address 0x{addr_hex} out of bounds for alloc")
         offset = addr - self.start
 
-        line = f"0x{addr_hex.lower()} 0x{value_hex.lower()} {offset}\n"
+        line = f"{offset}:0x{value_hex.lower()}\n"
         file_cache.write_line(self.tmp_path, line)
         self.store_count += 1
 
@@ -189,6 +191,7 @@ def parse_log(log_path: str | os.PathLike, max_open_files: int = 512, delete_inp
          log_path.open("r", encoding="utf-8", errors="ignore") as fh:
 
         inside_alloc = inside_free = False
+        current_building: LiveAlloc | None = None
 
         for line in fh:
             pbar.update(len(line))
@@ -237,9 +240,12 @@ def parse_log(log_path: str | os.PathLike, max_open_files: int = 512, delete_inp
 
             # ALLOC / FREE delimiters -----------------------------------
             if line.startswith("===ALLOC START==="):
-                inside_alloc = True; continue
+                inside_alloc = True; current_building = None; continue
             if line.startswith("===ALLOC END==="):
-                inside_alloc = False; continue
+                if current_building and current_building.stack_lines:
+                    header = "".join(f"# {sl}\n" for sl in current_building.stack_lines)
+                    file_cache.write_line(current_building.tmp_path, header)
+                inside_alloc = False; current_building = None; continue
             if line.startswith("===FREE START==="):
                 inside_free = True; continue
             if line.startswith("===FREE END==="):
@@ -254,7 +260,13 @@ def parse_log(log_path: str | os.PathLike, max_open_files: int = 512, delete_inp
                     size_int = int(size_str)
                     base_core = f"0x{start_hex.lower()}_{size_int}"
                     address_usage_count[start_int] += 1
-                    _add(LiveAlloc(start_int, size_int, base_core, out_dir, address_usage_count[start_int]))
+                    alloc = LiveAlloc(start_int, size_int, base_core, out_dir, address_usage_count[start_int])
+                    _add(alloc)
+                    current_building = alloc
+                elif current_building:
+                    stripped = line.rstrip()
+                    if stripped:
+                        current_building.stack_lines.append(stripped)
                 continue
 
             # FREE header -----------------------------------------------
