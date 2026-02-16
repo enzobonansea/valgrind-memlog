@@ -4,3 +4,4 @@ cpu2017-1.1.9.iso
 .vscode
 *.tar
 .env
+*.tar.xz
