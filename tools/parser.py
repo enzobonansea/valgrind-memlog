@@ -142,12 +142,13 @@ class LiveAlloc:
                 raise
 
 # -------------------------------------------------------
-def parse_log(log_path: str | os.PathLike, max_open_files: int = 512) -> Path:
+def parse_log(log_path: str | os.PathLike, max_open_files: int = 512, delete_input: bool = False) -> Path:
     """Parses a Valgrind memlog log file; outputs .stores files for ALLOCs that have STOREs.
 
     Args:
         log_path: Path to the Valgrind memlog output file
         max_open_files: Maximum number of file handles to keep open (default: 512)
+        delete_input: Delete the input log file after successful parsing (default: False)
 
     Returns:
         Path to the output directory containing .stores files
@@ -277,6 +278,10 @@ def parse_log(log_path: str | os.PathLike, max_open_files: int = 512) -> Path:
     # Close all file handles in the cache
     file_cache.close_all()
 
+    if delete_input:
+        log_path.unlink()
+        print(f"[parse_log] Deleted input file: {log_path}")
+
     print(f"[parse_log] Finished. Files are in: {out_dir}")
     return out_dir
 
@@ -289,6 +294,8 @@ if __name__ == "__main__":
     parser.add_argument("logfile", help="Path to the .log file to process")
     parser.add_argument("--max-open-files", type=int, default=512,
                         help="Maximum number of file handles to keep open (default: 512)")
+    parser.add_argument("--delete-input", action="store_true",
+                        help="Delete the input log file after successful parsing")
     args = parser.parse_args()
 
     log_path = Path(args.logfile)
@@ -296,5 +303,5 @@ if __name__ == "__main__":
         print(f"[parse_log] File not found: {log_path}")
         sys.exit(1)
 
-    out_dir = parse_log(args.logfile, max_open_files=args.max_open_files)
+    out_dir = parse_log(args.logfile, max_open_files=args.max_open_files, delete_input=args.delete_input)
     sys.exit(0)
