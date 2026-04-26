@@ -30,6 +30,13 @@ python3 -c "import duckdb; print(duckdb.connect('db/memlog.duckdb', read_only=Tr
 | 16 | `16_alloc_site_profile.sql` | Per allocation-site function: total stores, share of bench's writes, distinct buffers, mean allocation size, mean mantissa trailing zeros. |
 | 17 | `17_intra_buffer_gini.sql` | Gini coefficient of writes-per-offset within each buffer, aggregated per (bench, alloc_type) (mean / median / min / max / write-weighted). |
 | 18 | `18_hot_offsets.sql` | The 5 most-written byte offsets inside each of the top 10 buffers per benchmark, with their share of buffer and benchmark stores. |
+| 19 | `19_mx_block_sweep.sql` | MX viability across block sizes {8, 16, 32, 64, 128} — the curve that justifies the block-size choice for MXFP4 / MXFP8 mappings. |
+| 20 | `20_spatial_delta.sql` | Spatial value similarity between physically-adjacent offsets in the snapshot: bit-identical / 8-bit-delta / 16-bit-delta share + mean Hamming + mean log-delta. Direct measurement for delta-encoded compression. |
+| 21 | `21_per_function_silent.sql` | Silent-store rate grouped by allocation-site function (backs the paper's "4.8% aggregate hides 49.8% in `dyn_run`" claim). |
+| 22 | `22_bdi_compression.sql` | Per-cache-line BDI [Pekhimenko 2012] viability: % of 64-byte lines whose value range fits in 8 / 16 / 32-bit deltas. |
+| 23 | `23_fpc_patterns.sql` | FPC [Burtscher 2009] pattern coverage: % of stores matching zero / sign-extended-{4,8,16,32} / high-zero-low16 / repeating-byte patterns, with the OR-union as an upper bound. |
+| 24 | `24_required_exp_bits.sql` | Minimum exponent bit-width per allocation site to span its observed dynamic range — the FPVM "tiny floats" [HPDC '26] empirical question, answered per function. |
+| 25 | `25_frequent_values.sql` | Cumulative fraction of stores covered by the top 1 / 8 / 64 / 256 / 1024 most-frequent values — direct measurement for frequent-value compression [Yang 2000]. |
 
 ## Conventions
 
