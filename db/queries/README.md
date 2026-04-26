@@ -37,6 +37,12 @@ python3 -c "import duckdb; print(duckdb.connect('db/memlog.duckdb', read_only=Tr
 | 23 | `23_fpc_patterns.sql` | FPC [Burtscher 2009] pattern coverage: % of stores matching zero / sign-extended-{4,8,16,32} / high-zero-low16 / repeating-byte patterns, with the OR-union as an upper bound. |
 | 24 | `24_required_exp_bits.sql` | Minimum exponent bit-width per allocation site to span its observed dynamic range — the FPVM "tiny floats" [HPDC '26] empirical question, answered per function. |
 | 25 | `25_frequent_values.sql` | Cumulative fraction of stores covered by the top 1 / 8 / 64 / 256 / 1024 most-frequent values — direct measurement for frequent-value compression [Yang 2000]. |
+| 26 | `26_outlier_channels.sql` | Per-allocation-site outlier-channel concentration: do extreme-magnitude stores live at a few stable offsets? Engages SmoothQuant / AWQ / QuIP [2023–2024]. |
+| 27 | `27_per_offset_exponent_stability.sql` | Per-(site, offset) IEEE exponent variance — decides per-tensor vs per-channel vs per-token scaling for FP8 / MXFP4 [Microscaling 2023, OCP MX]. |
+| 28 | `28_mx_scale_sharing.sql` | Distinct-shared-scale ratio across MX blocks of size {16, 32, 64} — quantifies the *amortizable* portion of per-block scale overhead. |
+| 29 | `29_bit_plane_entropy.sql` | Per-bit Shannon entropy of stored values (all 64 positions) — predicts bit-plane compression ratios [Kim 2016, Mokey 2023]. |
+| 30 | `30_posit_fit.sql` | Posit-32 suitability profile: share of values in the high-precision regime where posits beat IEEE-32 [Gustafson 2017, Klöwer 2020]. |
+| 31 | `31_cacheline_homogeneity.sql` | 64-byte cache-line homogeneity (high-32, high-16, high-8 bits, biased exponent) — input for compressed-LLC designs [Touche, Buddy, Yacc]. |
 
 ## Conventions
 
