@@ -6,15 +6,28 @@ that turns those raw logs into queryable parquet.
 ## Pipeline
 
 ```
-   1. valgrind            2. parser.py          3. compress.sh         4. to_parquet.py
-┌──────────┐  raw .log  ┌─────────────┐  per-  ┌──────────┐  one      ┌────────────────┐
-│ any      │ ─────────▶ │ memlog.PID  │ alloc  │ <bench>/ │ archive   │ db/<bench>.    │
-│ binary / │            │ .log        │ .stores│ tar.xz   │ per bench │ parquet        │
-│ SPEC app │            │ (huge)      │ files  │ in raw/  │           │ + memlog.duckdb│
-└──────────┘            └─────────────┘        └──────────┘           └────────────────┘
-                                                                              │
-                                                                              ▼
-                                                                       db/queries/*.sql
+    binary or SPEC app
+          │
+          │   1.  valgrind --tool=memlog
+          ▼
+    memlog.PID.log                     (raw text log, often GiB+)
+          │
+          │   2.  tools/parser.py
+          ▼
+    memlog.PID.log.parsed/             (one .stores file per allocation)
+          │
+          │   3.  tools/compress.sh
+          ▼
+    raw/<bench>.tar.xz                 (parallel xz via pixz)
+          │
+          │   4.  tools/to_parquet.py
+          ▼
+    db/<bench>.parquet                 (one row per store, dict-encoded)
+    db/memlog.duckdb                   (views: <bench> + all_stores)
+          │
+          │   5.  duckdb / db/queries/*.sql
+          ▼
+    results
 ```
 
 Each stage is a separate tool; they're glued together so you can also enter
