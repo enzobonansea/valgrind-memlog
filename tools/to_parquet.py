@@ -357,6 +357,9 @@ def main() -> int:
     ap.add_argument("--no-pixz", action="store_true",
                     help="disable pixz parallel xz decompression even if "
                          "available (default: auto-detect)")
+    ap.add_argument("--force", action="store_true",
+                    help="re-convert archives even if a newer parquet exists "
+                         "(default: skip up-to-date archives)")
     ap.add_argument("archives", nargs="*", type=Path,
                     help="optional explicit archive paths; default: all *.tar.xz under --raw-dir")
     args = ap.parse_args()
@@ -380,6 +383,15 @@ def main() -> int:
         else:
             stem = arc.stem
         out = args.db_dir / f"{stem}.parquet"
+
+        if (not args.force
+                and out.exists()
+                and out.stat().st_mtime >= arc.stat().st_mtime):
+            size_mb = out.stat().st_size / (1024 * 1024)
+            print(f"[{name}] up-to-date, skipping ({out}, {size_mb:.2f} MiB) "
+                  f"-- pass --force to reconvert")
+            continue
+
         n_alloc, n_stores = convert_archive(arc, out, use_pixz=use_pixz)
         size_mb = out.stat().st_size / (1024 * 1024)
         print(f"[{name}] {n_alloc} allocations, {n_stores} stores -> "
