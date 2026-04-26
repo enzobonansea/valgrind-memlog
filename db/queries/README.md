@@ -1,0 +1,52 @@
+# Queries
+
+All queries target the `all_stores` view that `tools/to_parquet.py` builds
+in `db/memlog.duckdb` (one view per benchmark plus a UNION-ALL `all_stores`
+view with a leading `bench` column).
+
+Run any query with:
+
+```bash
+python3 -c "import duckdb; print(duckdb.connect('db/memlog.duckdb', read_only=True).execute(open('db/queries/01_summary.sql').read()).fetchdf().to_string(index=False))"
+```
+
+| # | File | What it answers |
+|---|---|---|
+| 01 | `01_summary.sql` | Per-benchmark totals: stores, distinct allocations, breakdown by `alloc_type`, fraction of zero-valued stores. |
+| 02 | `02_top_allocations.sql` | The 20 individual `(alloc_addr, generation)` buffers that absorb the most stores, with stores-per-byte. |
+| 03 | `03_size_distribution.sql` | Allocation-size histogram in power-of-two buckets per benchmark. |
+| 04 | `04_hot_stack_sites.sql` | Top 15 allocation call sites grouped by the first 3 stack frames, ranked by stores absorbed. |
+| 05 | `05_value_patterns.sql` | Counts of zero / pointer-shaped (top byte 0, magnitude > 2³²) / IEEE-754-double-shaped values per (bench, alloc_type). |
+| 06 | `06_alignment.sql` | Store-offset alignment within allocations: 8-byte vs 4-byte-only vs unaligned counts. |
+| 07 | `07_reused_allocations.sql` | The 20 heap addresses with the highest `generation` (most reused by the allocator). |
+| 08 | `08_coverage.sql` | Mean / min / max fraction of an allocation's slots that ever receive a store, with average rewrites per slot. |
+| 09 | `09_silent_stores.sql` | Stores that re-write the same value to the same `(alloc_addr, generation, offset)` as the previous store there — upper bound for silent-store elimination. |
+| 10 | `10_bit_patterns.sql` | Per (bench, alloc_type): zero / zero-exponent / zero-mantissa counts, plus mean Hamming distance to the previous store within each allocation. |
+| 11 | `11_write_concentration.sql` | Smallest N such that the top N buffers absorb 50 / 80 / 90 / 95 / 99 % of total stores per benchmark. |
+| 12 | `12_format_feasibility.sql` | Fraction of stores losslessly representable in FP8 E4M3, FP8 E5M2, bfloat16, FP16, FP32 per (bench, alloc_type), via mantissa trailing-zero thresholds. |
+| 13 | `13_per_function_feasibility.sql` | Same feasibility as 12 but grouped by the first non-allocator stack frame (paper Table 4 — `solve_em_` vs `surface_driver` style splits). |
+| 14 | `14_mx_feasibility.sql` | Microscaling (MX) block viability: % of 32-element blocks (last-write snapshot) where the unbiased exponent spread is ≤ 8 (MXFP8). |
+| 15 | `15_exponent_range.sql` | IEEE-754 exponent stats per (bench, alloc_type) plus share of values within FP8 E4M3 / E5M2 dynamic ranges. |
+| 16 | `16_alloc_site_profile.sql` | Per allocation-site function: total stores, share of bench's writes, distinct buffers, mean allocation size, mean mantissa trailing zeros. |
+| 17 | `17_intra_buffer_gini.sql` | Gini coefficient of writes-per-offset within each buffer, aggregated per (bench, alloc_type) (mean / median / min / max / write-weighted). |
+| 18 | `18_hot_offsets.sql` | The 5 most-written byte offsets inside each of the top 10 buffers per benchmark, with their share of buffer and benchmark stores. |
+
+## Conventions
+
+- **Ordering**: queries that need temporal store order (09, 10, 14) rely on
+  `ROW_NUMBER() OVER ()` to reconstruct physical scan order; this is well
+  defined here because `to_parquet.py` writes each
+  `(alloc_addr, generation)`'s stores contiguously and in the order
+  `parser.py` produced them.
+- **Snapshot vs. all stores**: most queries operate on every store. Query
+  14 (MX feasibility) operates on the *last-write snapshot* per
+  `(alloc_addr, generation, offset)`, matching the paper's methodology.
+- **Allocation site extraction** (queries 13, 16): the first stack frame
+  whose function name doesn't match an allocator skip-list (`malloc`,
+  `calloc`, `operator new`, `libgfortran`, `libstdc++`, `ld-2.`,
+  `dl-init`, `???`, ...). Mirrors
+  `papers/2026_Memlog/figs-generators/intra_buffer_analysis.py`.
+- **Performance** (queries 13, 16): regex-based site extraction is applied
+  *after* aggregating per `(bench, alloc_stack)` so it runs once per
+  unique stack (dictionary-encoded in parquet) rather than once per store
+  — orders of magnitude cheaper on the full dataset.
