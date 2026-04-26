@@ -85,23 +85,19 @@ class _CountingReader(io.RawIOBase):
             super().close()
 
 
-def _parse_stores_stream(fh) -> tuple[list[str], list[int], list[int]]:
+def _read_stack_header(fh) -> tuple[list[str], bytes | None]:
+    """Read leading '# ...' stack lines from a .stores stream. Returns the
+    collected stack lines and the first non-header line (or None on EOF) so
+    the caller can resume parsing the body without re-reading."""
     stack_lines: list[str] = []
-    offsets: list[int] = []
-    values: list[int] = []
     for raw in fh:
-        line = raw.decode("utf-8", errors="ignore")
-        if not line:
+        if not raw:
             continue
-        if line[0] == "#":
-            stack_lines.append(line[1:].strip())
+        if raw[:1] == b"#":
+            stack_lines.append(raw[1:].decode("utf-8", errors="ignore").strip())
             continue
-        sm = STORE_RE.match(line)
-        if not sm:
-            continue
-        offsets.append(int(sm.group(1)))
-        values.append(int(sm.group(2), 16))
-    return stack_lines, offsets, values
+        return stack_lines, raw
+    return stack_lines, None
 
 
 def _open_tar_stream(archive: Path, on_compressed_byte, use_pixz: bool):
@@ -258,35 +254,54 @@ def convert_archive(archive: Path, out_path: Path,
                     fh = tf.extractfile(member)
                     if fh is None:
                         continue
-                    stack_lines, offsets, values = _parse_stores_stream(fh)
-                    if not offsets:
-                        continue
 
+                    # Stream the body line-by-line so a single huge
+                    # allocation can't grow the column buffers past
+                    # BATCH_ROWS. Stack lines all come first; the one
+                    # non-header line that signals body-start is returned
+                    # by _read_stack_header so we don't lose it.
+                    stack_lines, first_body = _read_stack_header(fh)
                     stack_str = "\n".join(stack_lines)
-                    sidx = stack_idx_of.get(stack_str)
-                    if sidx is None:
-                        sidx = len(stack_dict_strs)
-                        stack_dict_strs.append(stack_str)
-                        stack_idx_of[stack_str] = sidx
+                    sidx_for_alloc = -1   # resolved on first store
                     t_idx = TYPE_IDX[type_name]
+                    n_in_alloc = 0
 
+                    def consume_line(raw: bytes):
+                        nonlocal sidx_for_alloc, n_in_alloc, n_stores
+                        line = raw.decode("utf-8", errors="ignore")
+                        sm = STORE_RE.match(line)
+                        if not sm:
+                            return
+                        if sidx_for_alloc < 0:
+                            sidx = stack_idx_of.get(stack_str)
+                            if sidx is None:
+                                sidx = len(stack_dict_strs)
+                                stack_dict_strs.append(stack_str)
+                                stack_idx_of[stack_str] = sidx
+                            sidx_for_alloc = sidx
+                        buf_alloc_addr.append(addr)
+                        buf_alloc_size.append(size)
+                        buf_type_idx.append(t_idx)
+                        buf_generation.append(generation)
+                        buf_stack_idx.append(sidx_for_alloc)
+                        buf_offset.append(int(sm.group(1)))
+                        buf_value.append(int(sm.group(2), 16))
+                        n_in_alloc += 1
+                        n_stores += 1
+                        if len(buf_offset) >= BATCH_ROWS:
+                            flush()
+
+                    if first_body is not None:
+                        consume_line(first_body)
+                    for raw in fh:
+                        consume_line(raw)
+
+                    if n_in_alloc == 0:
+                        continue
                     n_alloc += 1
-                    k = len(offsets)
-                    n_stores += k
-                    buf_alloc_addr.extend([addr] * k)
-                    buf_alloc_size.extend([size] * k)
-                    buf_type_idx.extend([t_idx] * k)
-                    buf_generation.extend([generation] * k)
-                    buf_stack_idx.extend([sidx] * k)
-                    buf_offset.extend(offsets)
-                    buf_value.extend(values)
-
                     if n_alloc % 64 == 0:
                         pbar.set_postfix(allocs=n_alloc, stores=n_stores,
                                          refresh=False)
-
-                    if len(buf_offset) >= BATCH_ROWS:
-                        flush()
         finally:
             cleanup()
 
