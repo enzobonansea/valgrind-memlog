@@ -1,5 +1,5 @@
 -- Top 20 individual allocations per bench by store count — the buffers that
--- absorb the most floating-point traffic.
+-- absorb the most store traffic.
 --
 -- Per-bench iteration: a global GROUP BY with COUNT(DISTINCT "offset") blew
 -- past DuckDB's spill ceiling (the per-group distinct hash sets don't spill).

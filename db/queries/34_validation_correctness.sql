@@ -1,23 +1,25 @@
--- Validation: correctness — IEEE-754 sanity check on captured 64-bit values.
--- If the instrumentation corrupted writes (lost low bits, swapped lanes on
--- SIMD decomposition, wrote stale tree-node payload, etc.) the unbiased
--- exponent distribution of FP-heavy benchmarks would deviate sharply from
--- physically realistic ranges. This query bins captured uint64 reinterpretations
--- into the four IEEE-754 binary64 classes and reports per-(bench, alloc_type)
--- shares — providing empirical, at-scale evidence to back the categorical
--- "logged values match written values" claim that the unit suite samples on
--- 11 fixed bit-patterns.
+-- Validation: correctness — IEEE-754 exponent-field histogram on captured
+-- values. If the instrumentation corrupted writes (lost low bits, swapped
+-- lanes on SIMD decomposition, wrote stale tree-node payload, etc.) the
+-- exponent-field share of benchmarks whose 8-byte buffers are dominated by
+-- IEEE-754 bit patterns would deviate sharply from the physically realistic
+-- range. This query bins each captured uint64 by the binary64 exponent field
+-- and reports per-(bench, alloc_type) shares — empirical evidence to back
+-- the categorical "logged values match written values" claim that the unit
+-- suite samples on 11 fixed bit-patterns.
 --
 -- Bit layout used (binary64): exp = (value >> 52) & 0x7FF.
 --   exp == 0 and value == 0      -> exact zero (zero-init / scrubbed memory)
---   exp == 0 and value != 0      -> subnormal (or non-FP small int payload)
---   exp == 0x7FF                 -> inf / NaN
---   1 <= exp <= 0x7FE            -> normal — the realistic bulk for FP code
+--   exp == 0 and value != 0      -> exponent field = 0 (IEEE subnormal class,
+--                                   but also matches small-magnitude integers)
+--   exp == 0x7FF                 -> exponent field saturated (IEEE inf/NaN class)
+--   1 <= exp <= 0x7FE            -> exponent field in the IEEE normal range
 --
--- Pathological signature: a benchmark with predominantly normal FP behavior
--- showing an unexpectedly large 'inf_nan' or random exponent share would
--- indicate a capture bug. The 32bits classification mirrors the 64bits one
--- using the binary32 layout for cross-check.
+-- These are exact bit-pattern shares — they make NO claim that any individual
+-- value is a float. A capture bug would show up as a benchmark whose 64bits
+-- shares (which we expect to track IEEE bit-pattern populations) suddenly
+-- skew toward saturated exponents or random distributions. The 32bits row
+-- mirrors this using the binary32 layout for cross-check.
 WITH d AS (
     SELECT
         bench,

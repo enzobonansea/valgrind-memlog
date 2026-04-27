@@ -9,11 +9,11 @@
 -- within K = 8 / 16 / 32 bits. Only lines with at least 2 distinct slots
 -- are counted (single-slot lines are trivially compressible).
 --
--- Caveat: BDI was designed for integer / pointer values; on raw float bits
--- (which dominate FP buffers) the metric overestimates compressibility for
--- arrays of small magnitudes (where high bits agree) and underestimates
--- for arrays of similar floats with differing low mantissa bits. Pair with
--- 23_fpc_patterns.sql for a float-aware view.
+-- Caveat: BDI was designed for integer / pointer values. When the underlying
+-- bytes are IEEE-754 bit patterns, the metric overestimates compressibility
+-- for arrays of small magnitudes (where high bits agree) and underestimates
+-- for arrays whose values share an exponent but differ in the low mantissa.
+-- Pair with 23_fpc_patterns.sql for a float-pattern-aware view.
 WITH numbered AS (
     SELECT *, ROW_NUMBER() OVER () AS rn
     FROM all_stores
