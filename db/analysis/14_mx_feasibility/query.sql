@@ -72,7 +72,7 @@ SELECT
     SUM(valid_n < 2 OR spread <= 8)::DOUBLE
         / NULLIF(COUNT(*), 0)                              AS viable_frac,
     AVG(spread) FILTER (WHERE valid_n >= 2)                AS mean_spread,
-    APPROX_QUANTILE(spread, 0.5) FILTER (WHERE valid_n >= 2) AS median_spread,
+    QUANTILE_CONT(spread, 0.5) FILTER (WHERE valid_n >= 2) AS median_spread,
     MAX(spread)                                            AS max_spread
 FROM spreads
 GROUP BY alloc_type

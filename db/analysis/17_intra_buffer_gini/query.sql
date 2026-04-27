@@ -40,7 +40,7 @@ SELECT
     bench, alloc_type,
     COUNT(*)::BIGINT                                       AS buffers,
     AVG(gini)                                              AS mean_gini,
-    APPROX_QUANTILE(gini, 0.5)                             AS median_gini,
+    QUANTILE_CONT(gini, 0.5)                             AS median_gini,
     MIN(gini)                                              AS min_gini,
     MAX(gini)                                              AS max_gini,
     -- write-weighted mean: heavier buffers count proportionally

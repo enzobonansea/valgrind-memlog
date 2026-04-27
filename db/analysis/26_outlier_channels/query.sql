@@ -30,8 +30,8 @@ WITH abs_vals AS (
 ),
 thresh AS (
     SELECT bench, alloc_stack, alloc_type,
-        APPROX_QUANTILE(abs_bits, 0.99)  AS p99,
-        APPROX_QUANTILE(abs_bits, 0.999) AS p999
+        QUANTILE_CONT(abs_bits, 0.99)  AS p99,
+        QUANTILE_CONT(abs_bits, 0.999) AS p999
     FROM abs_vals
     GROUP BY bench, alloc_stack, alloc_type
 ),

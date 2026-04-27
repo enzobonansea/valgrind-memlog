@@ -80,7 +80,7 @@ SELECT
     SUM(distinct_scales)::BIGINT                       AS distinct_scales_total,
     SUM(distinct_scales)::DOUBLE / NULLIF(SUM(blocks), 0) AS overall_scale_share,
     AVG(scale_share_ratio)                             AS mean_per_buffer_scale_share,
-    APPROX_QUANTILE(scale_share_ratio, 0.5)            AS median_per_buffer_scale_share
+    QUANTILE_CONT(scale_share_ratio, 0.5)            AS median_per_buffer_scale_share
 FROM per_buffer
 GROUP BY alloc_type, block_size
 ORDER BY alloc_type, block_size;

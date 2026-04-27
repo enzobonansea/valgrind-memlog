@@ -46,8 +46,8 @@ per_stack AS (
         COUNT(*)::BIGINT                                      AS distinct_offsets,
         SUM(exp_range = 0)::DOUBLE / COUNT(*)                 AS frac_constant_exp,
         AVG(exp_range)                                        AS mean_exp_range,
-        APPROX_QUANTILE(exp_range, 0.5)                       AS median_exp_range,
-        APPROX_QUANTILE(exp_range, 0.95)                      AS p95_exp_range
+        QUANTILE_CONT(exp_range, 0.5)                       AS median_exp_range,
+        QUANTILE_CONT(exp_range, 0.95)                      AS p95_exp_range
     FROM per_offset
     GROUP BY bench, alloc_stack, alloc_type
 ),

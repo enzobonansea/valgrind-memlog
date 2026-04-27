@@ -33,7 +33,7 @@ per_addr AS (
 SELECT
     p.bench,
     MIN(p.sz)::BIGINT                                   AS min_size,
-    APPROX_QUANTILE(p.sz, 0.5)::BIGINT                  AS median_size,
+    QUANTILE_CONT(p.sz, 0.5)::BIGINT                  AS median_size,
     MAX(p.sz)::BIGINT                                   AS max_size,
     (SELECT MAX(max_gen) FROM per_addr a
        WHERE a.bench = p.bench)::BIGINT                 AS max_generation,
