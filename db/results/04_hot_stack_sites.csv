@@ -1,0 +1,46 @@
+bench,site,stores,allocs,total_bytes
+x264,"==7558==    at 0x483C815: malloc (vg_replace_malloc.c:446)
+==7558==    by 0x11ECD4: x264_malloc (in /usr/cpu2017/benchspec/CPU/525.x264_r/run/run_base_test_mytest-m64.0000/x264_r_base.mytest-m64)
+==7558==    by 0x1622C1: x264_encoder_open_96 (in /usr/cpu2017/benchspec/CPU/525.x264_r/run/run_base_test_mytest-m64.0000/x264_r_base.mytest-m64)",2020639479,1,67430760053709
+x264,"==7558==    at 0x483C815: malloc (vg_replace_malloc.c:446)
+==7558==    by 0x11ECD4: x264_malloc (in /usr/cpu2017/benchspec/CPU/525.x264_r/run/run_base_test_mytest-m64.0000/x264_r_base.mytest-m64)
+==7558==    by 0x117C9D: x264_frame_new (in /usr/cpu2017/benchspec/CPU/525.x264_r/run/run_base_test_mytest-m64.0000/x264_r_base.mytest-m64)",318040248,5,1340479535713128
+cactus,"==11625==    at 0x483C815: malloc (vg_replace_malloc.c:446)
+==11625==    by 0x41A860: PUGH_EnableGArrayDataStorage (in /usr/cpu2017/benchspec/CPU/507.cactuBSSN_r/run/run_base_test_mytest-m64.0000/cactusBSSN_r_base.mytest-m64)
+==11625==    by 0x41AD8C: PUGH_GroupStorageIncrease (in /usr/cpu2017/benchspec/CPU/507.cactuBSSN_r/run/run_base_test_mytest-m64.0000/cactusBSSN_r_base.mytest-m64)",312498000,173,185221002078000
+mcf,"==3335==    at 0x4844277: calloc (vg_replace_malloc.c:1675)
+==3335==    by 0x10C3A5: primal_net_simplex (in /usr/cpu2017/benchspec/CPU/505.mcf_r/run/run_base_test_mytest-m64.0000/mcf_r_base.mytest-m64)
+==3335==    by 0x109401: global_opt (in /usr/cpu2017/benchspec/CPU/505.mcf_r/run/run_base_test_mytest-m64.0000/mcf_r_base.mytest-m64)",306998904,10,41859914558208
+lbm,"==276==    at 0x483C815: malloc (vg_replace_malloc.c:446)
+==276==    by 0x109338: LBM_allocateGrid (in /usr/cpu2017/benchspec/CPU/519.lbm_r/run/run_base_test_mytest-m64.0000/lbm_r_base.mytest-m64)
+==276==    by 0x10C015: MAIN_initialize (in /usr/cpu2017/benchspec/CPU/519.lbm_r/run/run_base_test_mytest-m64.0000/lbm_r_base.mytest-m64)",278100024,1,59624645145600000
+lbm,"==276==    at 0x483C815: malloc (vg_replace_malloc.c:446)
+==276==    by 0x109338: LBM_allocateGrid (in /usr/cpu2017/benchspec/CPU/519.lbm_r/run/run_base_test_mytest-m64.0000/lbm_r_base.mytest-m64)
+==276==    by 0x10C021: MAIN_initialize (in /usr/cpu2017/benchspec/CPU/519.lbm_r/run/run_base_test_mytest-m64.0000/lbm_r_base.mytest-m64)",278100024,1,59624645145600000
+namd,"==6570==    at 0x483E743: operator new[](unsigned long) (vg_replace_malloc.c:729)
+==6570==    by 0x1ACF3B: ComputeNonbondedUtil::calc_self_energy(nonbonded*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)
+==6570==    by 0x10A663: SelfCompute::doWork(PatchList*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)",273730305,2,2092922120623
+namd,"==6570==    at 0x483E743: operator new[](unsigned long) (vg_replace_malloc.c:729)
+==6570==    by 0x1DE728: Patch::readfile(_IO_FILE*, Molecule*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)
+==6570==    by 0x1DEFE3: PatchList::readfile(_IO_FILE*, Molecule*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)",241867152,144,3724035052752
+namd,"==6570==    at 0x483E743: operator new[](unsigned long) (vg_replace_malloc.c:729)
+==6570==    by 0x1DE6D1: Patch::readfile(_IO_FILE*, Molecule*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)
+==6570==    by 0x1DEFE3: PatchList::readfile(_IO_FILE*, Molecule*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)",241785912,144,3722760919152
+deepsjeng,"==8079==    at 0x483C815: malloc (vg_replace_malloc.c:446)
+==8079==    by 0x1178C1: alloc_hash() (in /usr/cpu2017/benchspec/CPU/531.deepsjeng_r/run/run_base_test_mytest-m64.0000/deepsjeng_r_base.mytest-m64)
+==8079==    by 0x10E72F: init_parameters(gamestate_t*) (in /usr/cpu2017/benchspec/CPU/531.deepsjeng_r/run/run_base_test_mytest-m64.0000/deepsjeng_r_base.mytest-m64)",223975970,1,161262698400000000
+wrf,"==2226==    at 0x483C815: malloc (vg_replace_malloc.c:446)
+==2226==    by 0x10BF220: solve_em_ (in /usr/cpu2017/benchspec/CPU/521.wrf_r/run/run_base_test_mytest-m64.0000/wrf_r_base.mytest-m64)
+==2226==    by 0x10E3FE7: solve_interface_ (in /usr/cpu2017/benchspec/CPU/521.wrf_r/run/run_base_test_mytest-m64.0000/wrf_r_base.mytest-m64)",213295500,30,142474568544000
+pop2,"==279==    at 0x1F43A815: malloc (vg_replace_malloc.c:446)
+==279==    by 0x19F2BC: __m_attrvect_MOD_sort_ (in /usr/cpu2017/benchspec/CPU/628.pop2_s/run/run_base_test_mytest-m64.0000/speed_pop2_base.mytest-m64)
+==279==    by 0x1AEF58: __m_sparsematrix_MOD_sort_ (in /usr/cpu2017/benchspec/CPU/628.pop2_s/run/run_base_test_mytest-m64.0000/speed_pop2_base.mytest-m64)",189720474,41,907314608702600
+pop2,"==279==    at 0x1F43A815: malloc (vg_replace_malloc.c:446)
+==279==    by 0x185A01: __m_mergesorts_MOD_isort_ (in /usr/cpu2017/benchspec/CPU/628.pop2_s/run/run_base_test_mytest-m64.0000/speed_pop2_base.mytest-m64)
+==279==    by 0x185FD9: __m_mergesorts_MOD_isortn_ (in /usr/cpu2017/benchspec/CPU/628.pop2_s/run/run_base_test_mytest-m64.0000/speed_pop2_base.mytest-m64)",184743964,73,885945216844416
+namd,"==6570==    at 0x483E743: operator new[](unsigned long) (vg_replace_malloc.c:729)
+==6570==    by 0x1CBDD1: ComputeNonbondedUtil::calc_self_energy_fullelect(nonbonded*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)
+==6570==    by 0x10A649: SelfCompute::doWork(PatchList*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)",169815360,2,3854494756920
+namd,"==6570==    at 0x483E743: operator new[](unsigned long) (vg_replace_malloc.c:729)
+==6570==    by 0x1AD153: ComputeNonbondedUtil::calc_self_energy(nonbonded*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)
+==6570==    by 0x10A663: SelfCompute::doWork(PatchList*) (in /usr/cpu2017/benchspec/CPU/508.namd_r/run/run_base_test_mytest-m64.0000/namd_r_base.mytest-m64)",168159048,2,3816892543488
