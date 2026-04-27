@@ -26,7 +26,8 @@ import pandas as pd
 
 QUERIES_DIR = Path(__file__).resolve().parent
 DB_DIR      = QUERIES_DIR.parent
-DB_PATH     = DB_DIR / "memlog.duckdb"
+DATA_DIR    = DB_DIR / "data"
+DB_PATH     = DATA_DIR / "memlog.duckdb"
 RESULTS_DIR = DB_DIR / "results"
 TMP_DIR     = DB_DIR / ".duckdb_tmp"
 
@@ -53,7 +54,7 @@ def resolve_query(arg: Path) -> Path:
 
 def list_benches(con: duckdb.DuckDBPyConnection) -> list[str]:
     """Bench names = parquet file stems, in alphabetical order."""
-    return sorted(p.stem for p in DB_DIR.glob("*.parquet"))
+    return sorted(p.stem for p in DATA_DIR.glob("*.parquet"))
 
 
 def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
