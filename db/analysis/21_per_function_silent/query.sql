@@ -3,28 +3,31 @@
 -- — write that puts back the value already at (alloc_addr, generation,
 -- offset) — but grouped by the first non-allocator stack frame.
 --
--- Per-row LAG is computed once over the full dataset, then aggregated by
--- (bench, alloc_stack), then by alloc-site (so the regex runs once per
--- unique stack rather than per store).
+-- Per-bench iteration: a global ROW_NUMBER() + LAG over all_stores blew
+-- DuckDB's spill budget on 09_silent_stores (same pattern). Running per
+-- bench bounds the window state to one parquet at a time. Per-row LAG is
+-- computed once for this bench, then aggregated by alloc_stack, then by
+-- alloc-site (so the regex runs once per unique stack rather than per
+-- store).
 WITH numbered AS (
-    SELECT *, ROW_NUMBER() OVER () AS rn FROM all_stores
+    SELECT *, ROW_NUMBER() OVER () AS rn FROM {bench}
 ),
 lagged AS (
     SELECT
-        bench, alloc_stack, value,
+        alloc_stack, value,
         LAG(value) OVER (
-            PARTITION BY bench, alloc_addr, generation, "offset"
+            PARTITION BY alloc_addr, generation, "offset"
             ORDER BY rn) AS prev_value
     FROM numbered
 ),
 per_stack AS (
     SELECT
-        bench, alloc_stack,
+        alloc_stack,
         COUNT(*)::BIGINT                                              AS stores,
         COUNT(*) FILTER (WHERE prev_value IS NOT NULL)::BIGINT        AS pairs,
         COUNT(*) FILTER (WHERE prev_value = value)::BIGINT            AS silent
     FROM lagged
-    GROUP BY bench, alloc_stack
+    GROUP BY alloc_stack
 ),
 sited AS (
     SELECT *,
@@ -47,21 +50,21 @@ sited AS (
 ),
 agg AS (
     SELECT
-        bench, site,
+        site,
         SUM(stores)::BIGINT                                AS stores,
         SUM(pairs)::BIGINT                                 AS pairs,
         SUM(silent)::BIGINT                                AS silent,
         SUM(silent)::DOUBLE / NULLIF(SUM(pairs), 0)        AS silent_frac
     FROM sited
     WHERE site IS NOT NULL AND site <> ''
-    GROUP BY bench, site
+    GROUP BY site
     HAVING SUM(pairs) >= 1000
 )
-SELECT bench, site, stores, pairs, silent, silent_frac
+SELECT '{bench}' AS bench, site, stores, pairs, silent, silent_frac
 FROM (
     SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY bench ORDER BY pairs DESC) AS rnk
+        ROW_NUMBER() OVER (ORDER BY pairs DESC) AS rnk
     FROM agg
 )
 WHERE rnk <= 20
-ORDER BY bench, pairs DESC;
+ORDER BY pairs DESC;

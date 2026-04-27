@@ -14,25 +14,29 @@
 --   * sparse / zero-padded buffers          → high zero_values, exp_zero
 --   * spatially coherent numeric arrays      → high bit_identical, low mean_hamming
 --
--- Ordering note: same convention as 09_silent_stores.sql — ROW_NUMBER() OVER ()
+-- Per-bench iteration: a global ROW_NUMBER() + LAG over all_stores blew
+-- DuckDB's spill budget on the silent-stores query (same pattern). Running
+-- per bench bounds the window state to one parquet at a time.
+--
+-- Ordering note: same convention as 09_silent_stores — ROW_NUMBER() OVER ()
 -- enumerates rows in physical scan order, which preserves the temporal store
--- order within each (alloc_addr, generation).
+-- order within each (alloc_addr, generation) inside this bench.
 WITH numbered AS (
     SELECT *, ROW_NUMBER() OVER () AS rn
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
 ),
 neighbored AS (
     SELECT
-        bench, alloc_type, value,
+        alloc_type, value,
         LAG(value) OVER (
-            PARTITION BY bench, alloc_addr, generation
+            PARTITION BY alloc_addr, generation
             ORDER BY rn
         ) AS prev_value
     FROM numbered
 )
 SELECT
-    bench,
+    '{bench}' AS bench,
     alloc_type,
     COUNT(*)::BIGINT                                                       AS total,
     SUM(value = 0)::BIGINT                                                 AS zero_values,
@@ -56,5 +60,5 @@ SELECT
         )
     ) FILTER (WHERE prev_value IS NOT NULL)                                AS mean_hamming
 FROM neighbored
-GROUP BY bench, alloc_type
-ORDER BY bench, alloc_type;
+GROUP BY alloc_type
+ORDER BY alloc_type;

@@ -16,22 +16,25 @@
 --                    for the bit-width of the additive delta. Useful for
 --                    delta encoders that work in arithmetic difference
 --                    rather than bitwise XOR.
+-- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
+-- spill budget on 09_silent_stores (same pattern). Running per bench bounds
+-- the window state to one parquet at a time.
 WITH numbered AS (
     SELECT *, ROW_NUMBER() OVER () AS rn
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
 ),
 snapshot AS (
-    SELECT bench, alloc_type, alloc_addr, generation, "offset", value
+    SELECT alloc_type, alloc_addr, generation, "offset", value
     FROM numbered
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY bench, alloc_addr, generation, "offset"
+        PARTITION BY alloc_addr, generation, "offset"
         ORDER BY rn DESC) = 1
 ),
 adj AS (
-    SELECT bench, alloc_type, value,
+    SELECT alloc_type, value,
         LAG(value) OVER (
-            PARTITION BY bench, alloc_addr, generation
+            PARTITION BY alloc_addr, generation
             ORDER BY "offset") AS prev_value,
         CASE alloc_type
             WHEN '32bits' THEN (1::UBIGINT << 32) - 1
@@ -40,7 +43,8 @@ adj AS (
     FROM snapshot
 )
 SELECT
-    bench, alloc_type,
+    '{bench}' AS bench,
+    alloc_type,
     COUNT(*) FILTER (WHERE prev_value IS NOT NULL)::BIGINT      AS pairs,
     SUM(prev_value = value) FILTER (WHERE prev_value IS NOT NULL)::BIGINT
                                                                 AS bit_identical,
@@ -59,5 +63,5 @@ SELECT
         END
     ) FILTER (WHERE prev_value IS NOT NULL)                     AS mean_log_delta
 FROM adj
-GROUP BY bench, alloc_type
-ORDER BY bench, alloc_type;
+GROUP BY alloc_type
+ORDER BY alloc_type;

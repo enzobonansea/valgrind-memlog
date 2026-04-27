@@ -18,30 +18,34 @@
 -- what an offline conversion would observe. Zero / denormal / NaN / Inf
 -- contribute no exponent and don't constrain the spread.
 --
+-- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
+-- spill budget on the silent-stores query (same pattern). Running per bench
+-- bounds the window state to one parquet at a time.
+--
 -- Ordering note: ROW_NUMBER() OVER () enumerates rows in physical scan
 -- order, which preserves the temporal store order within each
--- (alloc_addr, generation) — same convention as 09_silent_stores.sql.
+-- (alloc_addr, generation) inside this bench.
 WITH numbered AS (
     SELECT *, ROW_NUMBER() OVER () AS rn
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
 ),
 snapshot AS (
-    SELECT bench, alloc_type, alloc_addr, generation, "offset", value
+    SELECT alloc_type, alloc_addr, generation, "offset", value
     FROM numbered
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY bench, alloc_addr, generation, "offset"
+        PARTITION BY alloc_addr, generation, "offset"
         ORDER BY rn DESC) = 1
 ),
 indexed AS (
     SELECT *,
         (ROW_NUMBER() OVER (
-            PARTITION BY bench, alloc_addr, generation
+            PARTITION BY alloc_addr, generation
             ORDER BY "offset") - 1) / 32 AS block_id
     FROM snapshot
 ),
 exped AS (
-    SELECT bench, alloc_type, alloc_addr, generation, block_id,
+    SELECT alloc_type, alloc_addr, generation, block_id,
         CASE
             WHEN value = 0 THEN NULL
             WHEN alloc_type = '64bits'
@@ -54,14 +58,15 @@ exped AS (
     FROM indexed
 ),
 spreads AS (
-    SELECT bench, alloc_type, alloc_addr, generation, block_id,
+    SELECT alloc_type, alloc_addr, generation, block_id,
         MAX(exp_bits) - MIN(exp_bits) AS spread,
         COUNT(exp_bits)               AS valid_n
     FROM exped
-    GROUP BY bench, alloc_type, alloc_addr, generation, block_id
+    GROUP BY alloc_type, alloc_addr, generation, block_id
 )
 SELECT
-    bench, alloc_type,
+    '{bench}' AS bench,
+    alloc_type,
     COUNT(*)::BIGINT                                       AS blocks,
     SUM(valid_n < 2 OR spread <= 8)::BIGINT                AS viable_blocks,
     SUM(valid_n < 2 OR spread <= 8)::DOUBLE
@@ -70,5 +75,5 @@ SELECT
     APPROX_QUANTILE(spread, 0.5) FILTER (WHERE valid_n >= 2) AS median_spread,
     MAX(spread)                                            AS max_spread
 FROM spreads
-GROUP BY bench, alloc_type
-ORDER BY bench, alloc_type;
+GROUP BY alloc_type
+ORDER BY alloc_type;

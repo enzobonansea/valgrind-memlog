@@ -19,22 +19,25 @@
 --
 -- Citations: Rouhani 2023 NeurIPS (Shared Microexponents); OCP MX spec
 -- v1.0; Hopper / Blackwell architecture white papers.
+-- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
+-- spill budget on 09_silent_stores (same pattern). Running per bench
+-- bounds the window state to one parquet at a time.
 WITH numbered AS (
     SELECT *, ROW_NUMBER() OVER () AS rn
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
 ),
 snapshot AS (
-    SELECT bench, alloc_type, alloc_addr, generation, "offset", value
+    SELECT alloc_type, alloc_addr, generation, "offset", value
     FROM numbered
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY bench, alloc_addr, generation, "offset"
+        PARTITION BY alloc_addr, generation, "offset"
         ORDER BY rn DESC) = 1
 ),
 indexed AS (
     SELECT *,
         ROW_NUMBER() OVER (
-            PARTITION BY bench, alloc_addr, generation
+            PARTITION BY alloc_addr, generation
             ORDER BY "offset") - 1 AS idx
     FROM snapshot
 ),
@@ -44,7 +47,7 @@ expanded AS (
     CROSS JOIN (VALUES (16), (32), (64)) AS sz(block_size)
 ),
 blk_exp AS (
-    SELECT bench, alloc_type, block_size, alloc_addr, generation,
+    SELECT alloc_type, block_size, alloc_addr, generation,
         idx / block_size AS block_id,
         MAX(
             CASE
@@ -58,25 +61,26 @@ blk_exp AS (
             END
         ) AS scale_exp
     FROM expanded
-    GROUP BY bench, alloc_type, block_size, alloc_addr, generation, block_id
+    GROUP BY alloc_type, block_size, alloc_addr, generation, block_id
 ),
 per_buffer AS (
-    SELECT bench, alloc_type, block_size, alloc_addr, generation,
+    SELECT alloc_type, block_size, alloc_addr, generation,
         COUNT(*)::BIGINT                               AS blocks,
         COUNT(DISTINCT scale_exp)::BIGINT              AS distinct_scales,
         COUNT(DISTINCT scale_exp)::DOUBLE
             / NULLIF(COUNT(*), 0)                      AS scale_share_ratio
     FROM blk_exp
     WHERE scale_exp IS NOT NULL
-    GROUP BY bench, alloc_type, block_size, alloc_addr, generation
+    GROUP BY alloc_type, block_size, alloc_addr, generation
 )
 SELECT
-    bench, alloc_type, block_size,
+    '{bench}' AS bench,
+    alloc_type, block_size,
     SUM(blocks)::BIGINT                                AS blocks,
     SUM(distinct_scales)::BIGINT                       AS distinct_scales_total,
     SUM(distinct_scales)::DOUBLE / NULLIF(SUM(blocks), 0) AS overall_scale_share,
     AVG(scale_share_ratio)                             AS mean_per_buffer_scale_share,
     APPROX_QUANTILE(scale_share_ratio, 0.5)            AS median_per_buffer_scale_share
 FROM per_buffer
-GROUP BY bench, alloc_type, block_size
-ORDER BY bench, alloc_type, block_size;
+GROUP BY alloc_type, block_size
+ORDER BY alloc_type, block_size;

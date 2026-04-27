@@ -7,22 +7,26 @@
 --
 -- Threshold of 8 matches MXFP8 (E4M3); we also report viability at spread
 -- <= 4 (a hypothetical MXFP4-friendly threshold).
+--
+-- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
+-- spill budget on the silent-stores query (same pattern). Running per
+-- bench bounds the window state to one parquet at a time.
 WITH numbered AS (
     SELECT *, ROW_NUMBER() OVER () AS rn
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
 ),
 snapshot AS (
-    SELECT bench, alloc_type, alloc_addr, generation, "offset", value
+    SELECT alloc_type, alloc_addr, generation, "offset", value
     FROM numbered
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY bench, alloc_addr, generation, "offset"
+        PARTITION BY alloc_addr, generation, "offset"
         ORDER BY rn DESC) = 1
 ),
 indexed AS (
     SELECT *,
         ROW_NUMBER() OVER (
-            PARTITION BY bench, alloc_addr, generation
+            PARTITION BY alloc_addr, generation
             ORDER BY "offset") - 1 AS idx
     FROM snapshot
 ),
@@ -32,7 +36,7 @@ expanded AS (
     CROSS JOIN (VALUES (8), (16), (32), (64), (128)) AS sz(block_size)
 ),
 exped AS (
-    SELECT bench, alloc_type, alloc_addr, generation, block_size,
+    SELECT alloc_type, alloc_addr, generation, block_size,
         idx / block_size AS block_id,
         CASE
             WHEN value = 0 THEN NULL
@@ -46,14 +50,15 @@ exped AS (
     FROM expanded
 ),
 spreads AS (
-    SELECT bench, alloc_type, block_size, alloc_addr, generation, block_id,
+    SELECT alloc_type, block_size, alloc_addr, generation, block_id,
         MAX(exp_bits) - MIN(exp_bits) AS spread,
         COUNT(exp_bits)               AS valid_n
     FROM exped
-    GROUP BY bench, alloc_type, block_size, alloc_addr, generation, block_id
+    GROUP BY alloc_type, block_size, alloc_addr, generation, block_id
 )
 SELECT
-    bench, alloc_type, block_size,
+    '{bench}' AS bench,
+    alloc_type, block_size,
     COUNT(*)::BIGINT                                          AS blocks,
     SUM(valid_n < 2 OR spread <= 4)::DOUBLE
         / NULLIF(COUNT(*), 0)                                 AS viable_spread4,
@@ -61,5 +66,5 @@ SELECT
         / NULLIF(COUNT(*), 0)                                 AS viable_spread8,
     AVG(spread) FILTER (WHERE valid_n >= 2)                   AS mean_spread
 FROM spreads
-GROUP BY bench, alloc_type, block_size
-ORDER BY bench, alloc_type, block_size;
+GROUP BY alloc_type, block_size
+ORDER BY alloc_type, block_size;

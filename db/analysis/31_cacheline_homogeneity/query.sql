@@ -18,20 +18,23 @@
 --
 -- Citations: Hajinazar 2021 ASPLOS (Touche); Choukse 2020 ISCA (Buddy
 -- Compression); Park 2023 ISCA (Yacc); Tsai 2020 ISCA (CompressPoints).
+-- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
+-- spill budget on 09_silent_stores (same pattern). Running per bench
+-- bounds the window state to one parquet at a time.
 WITH numbered AS (
     SELECT *, ROW_NUMBER() OVER () AS rn
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
 ),
 snapshot AS (
-    SELECT bench, alloc_type, alloc_addr, generation, "offset", value
+    SELECT alloc_type, alloc_addr, generation, "offset", value
     FROM numbered
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY bench, alloc_addr, generation, "offset"
+        PARTITION BY alloc_addr, generation, "offset"
         ORDER BY rn DESC) = 1
 ),
 per_line AS (
-    SELECT bench, alloc_type, alloc_addr, generation,
+    SELECT alloc_type, alloc_addr, generation,
         "offset" / 64                                  AS line_id,
         COUNT(*)                                       AS slots,
         COUNT(DISTINCT value >> 32)                    AS distinct_high32,
@@ -44,10 +47,11 @@ per_line AS (
             END
         )                                              AS distinct_exp
     FROM snapshot
-    GROUP BY bench, alloc_type, alloc_addr, generation, "offset" / 64
+    GROUP BY alloc_type, alloc_addr, generation, "offset" / 64
 )
 SELECT
-    bench, alloc_type,
+    '{bench}' AS bench,
+    alloc_type,
     COUNT(*) FILTER (WHERE slots >= 2)::BIGINT                  AS lines,
     SUM(slots = 1)::BIGINT                                      AS trivial_lines,
     AVG(slots)                                                  AS mean_slots_per_line,
@@ -60,5 +64,5 @@ SELECT
     SUM(slots >= 2 AND distinct_exp = 1)::DOUBLE
         / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)         AS frac_homog_exp
 FROM per_line
-GROUP BY bench, alloc_type
-ORDER BY bench, alloc_type;
+GROUP BY alloc_type
+ORDER BY alloc_type;

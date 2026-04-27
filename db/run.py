@@ -18,6 +18,7 @@ literal `'{bench}' AS bench` if you need the bench column in the output."""
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -59,8 +60,22 @@ def list_benches(con: duckdb.DuckDBPyConnection) -> list[str]:
     return sorted(p.stem for p in DATA_DIR.glob("*.parquet"))
 
 
+def reset_tmp_dir() -> None:
+    """Wipe the spill dir before each query.
+
+    DuckDB normally cleans its own spill files when an operator finishes,
+    but a kill (OOM, ctrl-C, WSL freeze) leaves orphans behind — and a
+    long-running plow can otherwise accumulate hundreds of GB of stale
+    spill across queries. Clearing per-query bounds disk usage to one
+    query's working set."""
+    if TMP_DIR.exists():
+        shutil.rmtree(TMP_DIR)
+    TMP_DIR.mkdir(parents=True, exist_ok=True)
+
+
 def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
     """Execute query_path's SQL and write result.csv into the same folder."""
+    reset_tmp_dir()
     sql = query_path.read_text()
     out_path = query_path.parent / "result.csv"
     name     = query_path.parent.name  # analysis folder name
