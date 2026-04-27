@@ -12,6 +12,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
 
 HERE = Path(__file__).resolve().parent
 OUT  = HERE / "figure.svg"
@@ -34,7 +35,10 @@ def main() -> None:
     M = df[cols].fillna(0).to_numpy()
 
     fig, ax = plt.subplots(figsize=(7.5, max(4.0, 0.18 * len(df) + 1.5)))
-    im = ax.imshow(M, aspect="auto", cmap="viridis", vmin=0, vmax=1)
+    cmap = LinearSegmentedColormap.from_list(
+        "soft_rdylgn", ["#f4a582", "#ffffbf", "#91cf60"]
+    )
+    im = ax.imshow(M, aspect="auto", cmap=cmap, vmin=0, vmax=1)
 
     ax.set_xticks(range(len(FORMATS)))
     ax.set_xticklabels([n for _, n in FORMATS], rotation=30, ha="right",
@@ -46,12 +50,13 @@ def main() -> None:
     for i in range(M.shape[0]):
         for j in range(M.shape[1]):
             v = M[i, j]
-            color = "white" if v < 0.55 else "black"
             ax.text(j, i, f"{v*100:.0f}", ha="center", va="center",
-                    fontsize=6, color=color)
+                    fontsize=6, color="black")
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
-    cbar.set_label("share of stores losslessly representable", fontsize=9)
+    cbar.set_label("% of stores losslessly representable", fontsize=9)
+    cbar.set_ticks(np.linspace(0, 1, 6))
+    cbar.set_ticklabels([f"{int(t*100)}" for t in np.linspace(0, 1, 6)])
     cbar.ax.tick_params(labelsize=8)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
