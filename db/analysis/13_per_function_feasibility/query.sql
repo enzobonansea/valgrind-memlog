@@ -11,6 +11,10 @@
 -- alloc_stack) in a single scan (DuckDB groups on the dictionary index of
 -- alloc_stack so this is ~free), then extract the site name from each
 -- unique stack once and re-aggregate by site.
+--
+-- NOT memory-bound — CPU-bound (per-row bit_count/xor + regex_extract
+-- over billions of stores). Benefits from more threads; doesn't need the
+-- low-memory_limit/low-thread regime that the window-heavy queries need.
 WITH per_stack AS (
     SELECT
         bench, alloc_type, alloc_stack,

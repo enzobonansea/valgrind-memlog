@@ -7,6 +7,6 @@ cpu2017-1.1.9.iso
 *.tar.xz
 *.parquet
 *.duckdb
-/tools/__pycache__
+__pycache__/
 .claude/
 .duckdb_tmp/

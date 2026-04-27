@@ -38,12 +38,13 @@ TMP_DIR      = DB_DIR / ".duckdb_tmp"
 # DuckDB can react. Cap memory below the kernel's OOM trigger and point spill
 # at the data disk (~500 GB free).
 MEMORY_LIMIT = "16GB"
-# Fewer threads = bigger per-thread hash-aggregate budget, which lets DuckDB
-# hit the spill threshold instead of fragmenting memory across partitions.
-# We're disk-bound on these queries, not CPU-bound. Also: a tight memory_limit
-# forces DuckDB to spill to .duckdb_tmp before the OS resorts to swap; OS
-# swap pressure was what triggered the watchdog kills on Q09/Q10.
-THREADS      = 2
+# Threads: 4 is the sweet spot. Window-heavy queries (Q09/Q10/Q14/Q19/Q20/
+# Q21/Q22/Q28/Q31) get watchdog'd at high thread counts because per-thread
+# sort buffers + buffer pool exceed memory_limit and the OS reaches for
+# swap. CPU-bound queries (Q13 — bit_count/xor/regex over billions of
+# stores) NEED more threads or they take hours single-threaded. The
+# watchdog catches the bad case; the speedup pays for everything else.
+THREADS      = 4
 
 # Watchdog limits — interrupt the running query before WSL freezes the host.
 # Q09 in its previous incarnation spilled 147 GB and ate the host VHDX; these
