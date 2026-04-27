@@ -48,7 +48,7 @@ SELECT
         / COUNT(*)                                           AS pct_fp16,
     CASE alloc_type
         WHEN '64bits' THEN SUM(tz >= 29)::DOUBLE / COUNT(*)
-        ELSE NULL
+        ELSE 1.0
     END                                                      AS pct_fp32
 FROM tz
 GROUP BY bench, alloc_type

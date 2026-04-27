@@ -33,14 +33,12 @@ def main() -> None:
 
     cols = [c for c, _ in FORMATS]
     M = df[cols].to_numpy(dtype=float)
-    Mm = np.ma.masked_invalid(M)
 
     fig, ax = plt.subplots(figsize=(7.5, max(4.0, 0.18 * len(df) + 1.5)))
     cmap = LinearSegmentedColormap.from_list(
         "soft_rdylgn", ["#f4a582", "#ffffbf", "#91cf60"]
     )
-    cmap.set_bad("#e5e5e5")
-    im = ax.imshow(Mm, aspect="auto", cmap=cmap, vmin=0, vmax=1)
+    im = ax.imshow(M, aspect="auto", cmap=cmap, vmin=0, vmax=1)
 
     ax.set_xticks(range(len(FORMATS)))
     ax.set_xticklabels([n for _, n in FORMATS], rotation=30, ha="right",
@@ -48,12 +46,11 @@ def main() -> None:
     ax.set_yticks(range(len(df)))
     ax.set_yticklabels(df["row"].tolist(), fontsize=7)
 
-    # Annotate each cell with its percentage; N/A for masked cells.
+    # Annotate each cell with its percentage.
     for i in range(M.shape[0]):
         for j in range(M.shape[1]):
             v = M[i, j]
-            label = "n/a" if np.isnan(v) else f"{v*100:.0f}"
-            ax.text(j, i, label, ha="center", va="center",
+            ax.text(j, i, f"{v*100:.0f}", ha="center", va="center",
                     fontsize=6, color="black")
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
