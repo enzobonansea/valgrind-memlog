@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -41,6 +42,14 @@ MEMORY_LIMIT = "24GB"
 # hit the spill threshold instead of fragmenting memory across partitions.
 # We're disk-bound on these queries, not CPU-bound.
 THREADS      = 4
+
+# Watchdog limits — interrupt the running query before WSL freezes the host.
+# Q09 in its previous incarnation spilled 147 GB and ate the host VHDX; these
+# numbers are well inside that ceiling.
+WATCH_SPILL_GB = 100   # max .duckdb_tmp size
+WATCH_FREE_GB  = 30    # min free disk on /
+WATCH_SWAP_GB  = 7     # max swap used (out of 8 GB)
+WATCH_POLL_S   = 5
 
 
 def resolve_analysis(arg: Path) -> Path:
@@ -73,6 +82,53 @@ def reset_tmp_dir() -> None:
     TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _swap_used_gb() -> float:
+    try:
+        with open("/proc/meminfo") as f:
+            kv = dict(line.split(":", 1) for line in f if ":" in line)
+        total = int(kv["SwapTotal"].strip().split()[0])
+        free  = int(kv["SwapFree"].strip().split()[0])
+        return (total - free) / 1024 / 1024
+    except Exception:
+        return 0.0
+
+
+def _spill_size_gb() -> float:
+    total = 0
+    try:
+        for f in TMP_DIR.rglob("*"):
+            if f.is_file():
+                try:
+                    total += f.stat().st_size
+                except FileNotFoundError:
+                    pass
+    except FileNotFoundError:
+        return 0.0
+    return total / 1024**3
+
+
+def watchdog(con: duckdb.DuckDBPyConnection,
+             stop: threading.Event,
+             query_name: str) -> None:
+    """Interrupt the running query if disk/spill/swap cross safety thresholds.
+    Runs in a daemon thread; self-exits when `stop` is set."""
+    while not stop.wait(WATCH_POLL_S):
+        spill_gb = _spill_size_gb()
+        free_gb  = shutil.disk_usage(DB_DIR).free / 1024**3
+        swap_gb  = _swap_used_gb()
+        if (spill_gb > WATCH_SPILL_GB or
+            free_gb  < WATCH_FREE_GB  or
+            swap_gb  > WATCH_SWAP_GB):
+            print(f"[{query_name}] watchdog: spill={spill_gb:.1f}GB "
+                  f"free={free_gb:.1f}GB swap={swap_gb:.1f}GB — INTERRUPTING",
+                  file=sys.stderr, flush=True)
+            try:
+                con.interrupt()
+            except Exception:
+                pass
+            return
+
+
 def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
     """Execute query_path's SQL and write result.csv into the same folder."""
     reset_tmp_dir()
@@ -81,13 +137,21 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
     name     = query_path.parent.name  # analysis folder name
     t0 = time.perf_counter()
 
-    if "{bench}" in sql:
-        frames: list[pd.DataFrame] = []
-        for bench in list_benches(con):
-            frames.append(con.execute(sql.format(bench=bench)).fetchdf())
-        df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
-    else:
-        df = con.execute(sql).fetchdf()
+    stop = threading.Event()
+    wd   = threading.Thread(target=watchdog, args=(con, stop, name),
+                             daemon=True)
+    wd.start()
+    try:
+        if "{bench}" in sql:
+            frames: list[pd.DataFrame] = []
+            for bench in list_benches(con):
+                frames.append(con.execute(sql.format(bench=bench)).fetchdf())
+            df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+        else:
+            df = con.execute(sql).fetchdf()
+    finally:
+        stop.set()
+        wd.join(timeout=WATCH_POLL_S * 2)
 
     df.to_csv(out_path, index=False)
     elapsed = time.perf_counter() - t0
