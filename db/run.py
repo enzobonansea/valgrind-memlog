@@ -156,7 +156,10 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
         if "{bench}" in sql:
             frames: list[pd.DataFrame] = []
             for bench in list_benches(con):
-                frames.append(con.execute(sql.format(bench=bench)).fetchdf())
+                # `replace` instead of `format` — SQL comments may legitimately
+                # contain `{...}` text (e.g. set-builder notation in docs)
+                # that str.format would misinterpret as a placeholder.
+                frames.append(con.execute(sql.replace("{bench}", bench)).fetchdf())
             df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
         else:
             df = con.execute(sql).fetchdf()
