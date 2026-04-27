@@ -4,10 +4,11 @@ All queries target the `all_stores` view that `tools/to_parquet.py` builds
 in `db/memlog.duckdb` (one view per benchmark plus a UNION-ALL `all_stores`
 view with a leading `bench` column).
 
-Run any query with:
+Run queries via `db/queries/run.py` — results are exported as CSV to `db/results/<stem>.csv`:
 
 ```bash
-python3 -c "import duckdb; print(duckdb.connect('db/memlog.duckdb', read_only=True).execute(open('db/queries/01_summary.sql').read()).fetchdf().to_string(index=False))"
+db/queries/run.py                       # run every NN_*.sql in order
+db/queries/run.py 01_summary.sql        # run a single query
 ```
 
 | # | File | What it answers |
