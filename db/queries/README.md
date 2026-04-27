@@ -43,6 +43,9 @@ python3 -c "import duckdb; print(duckdb.connect('db/memlog.duckdb', read_only=Tr
 | 29 | `29_bit_plane_entropy.sql` | Per-bit Shannon entropy of stored values (all 64 positions) — predicts bit-plane compression ratios [Kim 2016, Mokey 2023]. |
 | 30 | `30_posit_fit.sql` | Posit-32 suitability profile: share of values in the high-precision regime where posits beat IEEE-32 [Gustafson 2017, Klöwer 2020]. |
 | 31 | `31_cacheline_homogeneity.sql` | 64-byte cache-line homogeneity (high-32, high-16, high-8 bits, biased exponent) — input for compressed-LLC designs [Touche, Buddy, Yacc]. |
+| 32 | `32_validation_volume.sql` | Validation §3 — testing volume per benchmark: stores, distinct buffers, distinct call sites, distinct sizes, total bytes addressed. Empirical counterpart to the 11-test unit suite. |
+| 33 | `33_validation_robustness.sql` | Validation §3 — robustness: per-benchmark spread of edge cases handled at SPEC scale (size span, max realloc generation, reused-buffer count, alignment classes, max offset). |
+| 34 | `34_validation_correctness.sql` | Validation §3 — correctness: IEEE-754 binary64/binary32 exponent-class shares per (bench, alloc_type). Pathological capture would produce unphysical inf/NaN or exponent distributions. |
 
 ## Conventions
 
