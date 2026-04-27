@@ -22,10 +22,10 @@ that turns those raw logs into queryable parquet.
           │
           │   4.  tools/to_parquet.py
           ▼
-    db/<bench>.parquet                 (one row per store, dict-encoded)
-    db/memlog.duckdb                   (views: <bench> + all_stores)
+    db/data/<bench>.parquet            (one row per store, dict-encoded)
+    db/data/memlog.duckdb              (views: <bench> + all_stores)
           │
-          │   5.  duckdb / db/queries/*.sql
+          │   5.  db/run.py — db/analysis/<NN>_*/query.sql → result.csv (+ figure.svg)
           ▼
     results
 ```
@@ -99,17 +99,19 @@ decompression and is recommended for the 100 GB+ archives.
 
 ### 5. Query
 
-Eight ready-made queries live under `db/queries/` (summary, hotspots, size
-distribution, hot stack sites, value-bit patterns, alignment, reuse,
-coverage). All target the `all_stores` view, so they work across whichever
-benchmarks you've converted.
+Each analysis lives in `db/analysis/<NN_name>/` as a vertical slice — a
+`query.sql`, the produced `result.csv`, and (for the headline ones) a
+`figure.py` + `figure.svg`. All queries target the `all_stores` view, so
+they work across whichever benchmarks you've converted.
 
 ```bash
-python3 -c "import duckdb; print(duckdb.connect('db/memlog.duckdb', read_only=True).execute(open('db/queries/01_summary.sql').read()).fetchdf().to_string(index=False))"
+db/run.py                   # run every db/analysis/NN_*/query.sql in order
+db/run.py 01_summary        # run a single analysis
 ```
 
-Or use the DuckDB CLI / your tool of choice — the parquet files are the
-canonical artifact, the `.duckdb` is just a thin wrapper of views.
+Or use the DuckDB CLI / your tool of choice — the parquet files in
+`db/data/` are the canonical artifact, `db/data/memlog.duckdb` is just a
+thin wrapper of views.
 
 ## Quick Start (Docker, end-to-end)
 
@@ -143,6 +145,7 @@ tools/      # parser.py, compress.sh / decompress.sh, to_parquet.py
 spec/       # SPEC CPU configs (memlog-*, lackey, native)
 valgrind/   # vendored valgrind + memlog source
 raw/        # *.tar.xz inputs (gitignored)
-db/         # *.parquet + memlog.duckdb outputs (gitignored)
-db/queries/ # example SQL against the all_stores view
+db/data/    # *.parquet + memlog.duckdb outputs (gitignored)
+db/analysis/<NN_name>/  # one folder per analysis: query.sql, result.csv, figure.py, figure.svg
+db/run.py   # harness that runs analyses
 ```
