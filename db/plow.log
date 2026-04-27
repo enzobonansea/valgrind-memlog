@@ -1,0 +1,8 @@
+>>> 09_silent_stores
+[09_silent_stores] FAILED: Query interrupted
+>>> 10_bit_patterns
+[10_bit_patterns] watchdog: spill=29.4GB free=511.0GB swap=7.6GB — INTERRUPTING
+[10_bit_patterns] FAILED: INTERRUPT Error: Interrupted!
+>>> 11_write_concentration
+[11_write_concentration] 24 row(s) in 90.15s -> /home/enzo/valgrind-memlog/db/analysis/11_write_concentration/result.csv
+>>> 12_format_feasibility
