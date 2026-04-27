@@ -52,6 +52,7 @@ THREADS      = 4
 WATCH_SPILL_GB = 100   # max .duckdb_tmp size
 WATCH_FREE_GB  = 30    # min free disk on /
 WATCH_SWAP_GB  = 7     # max swap used (out of 8 GB)
+WATCH_TIME_S   = 3600  # max wall time per query — kill and retry later
 WATCH_POLL_S   = 5
 
 
@@ -112,18 +113,25 @@ def _spill_size_gb() -> float:
 
 def watchdog(con: duckdb.DuckDBPyConnection,
              stop: threading.Event,
-             query_name: str) -> None:
-    """Interrupt the running query if disk/spill/swap cross safety thresholds.
-    Runs in a daemon thread; self-exits when `stop` is set."""
+             query_name: str,
+             t0: float) -> None:
+    """Interrupt the running query if disk/spill/swap cross safety thresholds
+    or wall time exceeds WATCH_TIME_S. Runs in a daemon thread; self-exits
+    when `stop` is set."""
     while not stop.wait(WATCH_POLL_S):
         spill_gb = _spill_size_gb()
         free_gb  = shutil.disk_usage(DB_DIR).free / 1024**3
         swap_gb  = _swap_used_gb()
-        if (spill_gb > WATCH_SPILL_GB or
-            free_gb  < WATCH_FREE_GB  or
-            swap_gb  > WATCH_SWAP_GB):
-            print(f"[{query_name}] watchdog: spill={spill_gb:.1f}GB "
-                  f"free={free_gb:.1f}GB swap={swap_gb:.1f}GB — INTERRUPTING",
+        elapsed  = time.perf_counter() - t0
+        reason = None
+        if spill_gb > WATCH_SPILL_GB: reason = "spill"
+        elif free_gb < WATCH_FREE_GB: reason = "disk"
+        elif swap_gb > WATCH_SWAP_GB: reason = "swap"
+        elif elapsed > WATCH_TIME_S:  reason = "time"
+        if reason:
+            print(f"[{query_name}] watchdog ({reason}): "
+                  f"spill={spill_gb:.1f}GB free={free_gb:.1f}GB "
+                  f"swap={swap_gb:.1f}GB elapsed={elapsed:.0f}s — INTERRUPTING",
                   file=sys.stderr, flush=True)
             try:
                 con.interrupt()
@@ -141,7 +149,7 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
     t0 = time.perf_counter()
 
     stop = threading.Event()
-    wd   = threading.Thread(target=watchdog, args=(con, stop, name),
+    wd   = threading.Thread(target=watchdog, args=(con, stop, name, t0),
                              daemon=True)
     wd.start()
     try:
