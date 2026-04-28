@@ -42,9 +42,9 @@ SELECT
     SUM(alloc_type = '64bits' AND exp64 = 2047)::DOUBLE
         / NULLIF(COUNT(*), 0)                                        AS frac_inf_nan_f64,
     -- 32-bit interpretation (low half of the 64-bit logged value)
-    SUM(alloc_type = '32bits' AND (value & 0xFFFFFFFF) <> 0
+    SUM(alloc_type = '32bits' AND (value & ((1::UBIGINT << 32) - 1)) <> 0
         AND exp32 BETWEEN 1 AND 254)::DOUBLE / NULLIF(COUNT(*), 0)   AS frac_normal_f32,
-    SUM(alloc_type = '32bits' AND (value & 0xFFFFFFFF) <> 0
+    SUM(alloc_type = '32bits' AND (value & ((1::UBIGINT << 32) - 1)) <> 0
         AND exp32 = 0)::DOUBLE / NULLIF(COUNT(*), 0)                 AS frac_subnormal_f32,
     SUM(alloc_type = '32bits' AND exp32 = 255)::DOUBLE
         / NULLIF(COUNT(*), 0)                                        AS frac_inf_nan_f32
