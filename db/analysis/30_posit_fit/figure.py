@@ -13,8 +13,8 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 OUT  = HERE / "figure.svg"
 
-COLOR = {"64bits": "#0072B2", "32bits": "#56B4E9", "object": "#E69F00"}
-ORDER = ["64bits", "32bits", "object"]
+COLOR = {"64bits": "#0072B2", "32bits": "#56B4E9"}
+ORDER = ["64bits", "32bits"]
 
 
 def main() -> None:
@@ -22,7 +22,7 @@ def main() -> None:
     bench_order = (df.groupby("bench")["frac_high_precision"].max()
                      .sort_values().index.tolist())
 
-    fig, axes = plt.subplots(1, len(ORDER), figsize=(10.5, 6.5),
+    fig, axes = plt.subplots(1, len(ORDER), figsize=(7.5, 6.5),
                               sharey=True)
     for ax, atype in zip(axes, ORDER):
         sub = (df[df.alloc_type == atype]
