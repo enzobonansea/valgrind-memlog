@@ -19,9 +19,11 @@
 -- E5M2; ≤ 8 fits bfloat16. Combine with 13_per_function_feasibility.sql
 -- (which checks precision via mantissa) to identify functions that fit
 -- both axes.
+-- Per-bench iteration so the per-stack hash agg stays bounded by one
+-- bench's stack dictionary.
 WITH classified AS (
     SELECT
-        bench, alloc_stack,
+        alloc_stack,
         CASE alloc_type
             WHEN '64bits' THEN ((value >> 52) & 2047)::INT
             WHEN '32bits' THEN ((value >> 23) & 255)::INT
@@ -31,12 +33,12 @@ WITH classified AS (
             WHEN '32bits' THEN ((value >> 23) & 255)::INT  - 127
         END AS unbiased,
         alloc_type
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits') AND value <> 0
 ),
 per_stack AS (
     SELECT
-        bench, alloc_stack, alloc_type,
+        alloc_stack, alloc_type,
         MIN(unbiased) FILTER (
             WHERE biased <> 0
               AND biased <> CASE alloc_type WHEN '64bits' THEN 2047 ELSE 255 END
@@ -47,7 +49,7 @@ per_stack AS (
         ) AS max_e,
         COUNT(*)::BIGINT AS total
     FROM classified
-    GROUP BY bench, alloc_stack, alloc_type
+    GROUP BY alloc_stack, alloc_type
 ),
 sited AS (
     SELECT *,
@@ -70,26 +72,26 @@ sited AS (
 ),
 agg AS (
     SELECT
-        bench, alloc_type, site,
+        alloc_type, site,
         MIN(min_e)::INT AS min_e,
         MAX(max_e)::INT AS max_e,
         SUM(total)::BIGINT AS total
     FROM sited
     WHERE site IS NOT NULL AND site <> ''
       AND min_e IS NOT NULL AND max_e IS NOT NULL
-    GROUP BY bench, alloc_type, site
+    GROUP BY alloc_type, site
     HAVING SUM(total) >= 1000
 )
 SELECT
-    bench, alloc_type, site,
+    '{bench}' AS bench, alloc_type, site,
     min_e, max_e,
     max_e - min_e + 1                                          AS exp_range,
     CAST(CEIL(LOG2(GREATEST(max_e - min_e + 1, 2)::DOUBLE)) AS INT) AS required_e_bits,
     total
 FROM (
     SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY bench ORDER BY total DESC) AS rnk
+        ROW_NUMBER() OVER (ORDER BY total DESC) AS rnk
     FROM agg
 )
 WHERE rnk <= 20
-ORDER BY bench, total DESC;
+ORDER BY total DESC;

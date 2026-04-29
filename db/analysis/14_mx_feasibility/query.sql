@@ -18,24 +18,18 @@
 -- what an offline conversion would observe. Zero / denormal / NaN / Inf
 -- contribute no exponent and don't constrain the spread.
 --
--- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
--- spill budget on the silent-stores query (same pattern). Running per bench
--- bounds the window state to one parquet at a time.
---
--- Ordering note: ROW_NUMBER() OVER () enumerates rows in physical scan
--- order, which preserves the temporal store order within each
--- (alloc_addr, generation) inside this bench.
-WITH numbered AS (
-    SELECT *, ROW_NUMBER() OVER () AS rn
+-- Per-bench iteration bounds window state to one parquet at a time.
+-- Snapshot extraction uses `arg_max(value, rn)` (rn = parquet
+-- file_row_number from the view) instead of the earlier
+-- ROW_NUMBER OVER () + QUALIFY ROW_NUMBER OVER (... ORDER BY rn DESC)
+-- pattern, which materialised every row twice and exhausted spill on
+-- the larger benches.
+WITH snapshot AS (
+    SELECT alloc_type, alloc_addr, generation, "offset",
+        arg_max(value, rn) AS value
     FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
-),
-snapshot AS (
-    SELECT alloc_type, alloc_addr, generation, "offset", value
-    FROM numbered
-    QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY alloc_addr, generation, "offset"
-        ORDER BY rn DESC) = 1
+    GROUP BY alloc_type, alloc_addr, generation, "offset"
 ),
 indexed AS (
     SELECT *,

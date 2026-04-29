@@ -14,26 +14,20 @@
 --   * sparse / zero-padded buffers          → high zero_values, exp_zero
 --   * spatially coherent numeric arrays      → high bit_identical, low mean_hamming
 --
--- Per-bench iteration: a global ROW_NUMBER() + LAG over all_stores blew
--- DuckDB's spill budget on the silent-stores query (same pattern). Running
--- per bench bounds the window state to one parquet at a time.
---
--- Ordering note: same convention as 09_silent_stores — ROW_NUMBER() OVER ()
--- enumerates rows in physical scan order, which preserves the temporal store
--- order within each (alloc_addr, generation) inside this bench.
-WITH numbered AS (
-    SELECT *, ROW_NUMBER() OVER () AS rn
-    FROM {bench}
-    WHERE alloc_type IN ('32bits', '64bits')
-),
-neighbored AS (
+-- Per-bench iteration bounds the window state to one parquet at a time.
+-- Ordering note: same convention as 09_silent_stores — the view's `rn`
+-- column is parquet's file_row_number, so ORDER BY rn within
+-- (alloc_addr, generation) reproduces the temporal store sequence without
+-- the global ROW_NUMBER() OVER () materialise that earlier revisions used.
+WITH neighbored AS (
     SELECT
         alloc_type, value,
         LAG(value) OVER (
             PARTITION BY alloc_addr, generation
             ORDER BY rn
         ) AS prev_value
-    FROM numbered
+    FROM {bench}
+    WHERE alloc_type IN ('32bits', '64bits')
 )
 SELECT
     '{bench}' AS bench,

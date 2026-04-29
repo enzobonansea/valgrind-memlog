@@ -19,49 +19,50 @@
 --
 -- Citations: Rouhani 2023 NeurIPS (Shared Microexponents); OCP MX spec
 -- v1.0; Hopper / Blackwell architecture white papers.
--- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
--- spill budget on 09_silent_stores (same pattern). Running per bench
--- bounds the window state to one parquet at a time.
-WITH numbered AS (
-    SELECT *, ROW_NUMBER() OVER () AS rn
+--
+-- Per-bench iteration bounds window state to one parquet at a time.
+-- Snapshot extraction uses arg_max(value, rn) instead of ROW_NUMBER OVER ()
+-- + QUALIFY. Block sizes {16, 32, 64} are swept by aggregating three
+-- GROUP BYs and UNION ALL'ing them, rather than CROSS JOIN'ing rows by
+-- block size.
+WITH snapshot AS (
+    SELECT alloc_type, alloc_addr, generation, "offset",
+        arg_max(value, rn) AS value
     FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
-),
-snapshot AS (
-    SELECT alloc_type, alloc_addr, generation, "offset", value
-    FROM numbered
-    QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY alloc_addr, generation, "offset"
-        ORDER BY rn DESC) = 1
+    GROUP BY alloc_type, alloc_addr, generation, "offset"
 ),
 indexed AS (
-    SELECT *,
+    SELECT alloc_type, alloc_addr, generation,
         ROW_NUMBER() OVER (
             PARTITION BY alloc_addr, generation
-            ORDER BY "offset") - 1 AS idx
+            ORDER BY "offset") - 1 AS idx,
+        CASE
+            WHEN value = 0 THEN NULL
+            WHEN alloc_type = '64bits'
+                AND ((value >> 52) & 2047) IN (0, 2047) THEN NULL
+            WHEN alloc_type = '32bits'
+                AND ((value >> 23) & 255)  IN (0, 255)  THEN NULL
+            WHEN alloc_type = '64bits' THEN ((value >> 52) & 2047)::INT
+            WHEN alloc_type = '32bits' THEN ((value >> 23) & 255)::INT
+        END AS exp_bits
     FROM snapshot
 ),
-expanded AS (
-    SELECT i.*, sz.block_size
-    FROM indexed i
-    CROSS JOIN (VALUES (16), (32), (64)) AS sz(block_size)
-),
 blk_exp AS (
-    SELECT alloc_type, block_size, alloc_addr, generation,
-        idx / block_size AS block_id,
-        MAX(
-            CASE
-                WHEN value = 0 THEN NULL
-                WHEN alloc_type = '64bits'
-                    AND ((value >> 52) & 2047) IN (0, 2047) THEN NULL
-                WHEN alloc_type = '32bits'
-                    AND ((value >> 23) & 255)  IN (0, 255)  THEN NULL
-                WHEN alloc_type = '64bits' THEN ((value >> 52) & 2047)::INT
-                WHEN alloc_type = '32bits' THEN ((value >> 23) & 255)::INT
-            END
-        ) AS scale_exp
-    FROM expanded
-    GROUP BY alloc_type, block_size, alloc_addr, generation, block_id
+    SELECT alloc_type, 16 AS block_size, alloc_addr, generation,
+        idx / 16 AS block_id, MAX(exp_bits) AS scale_exp
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 16
+    UNION ALL
+    SELECT alloc_type, 32, alloc_addr, generation,
+        idx / 32, MAX(exp_bits)
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 32
+    UNION ALL
+    SELECT alloc_type, 64, alloc_addr, generation,
+        idx / 64, MAX(exp_bits)
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 64
 ),
 per_buffer AS (
     SELECT alloc_type, block_size, alloc_addr, generation,

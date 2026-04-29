@@ -3,27 +3,26 @@
 -- Useful as an upper bound on how much store traffic a "silent-store
 -- elimination" optimization could remove.
 --
--- Per-bench iteration: a global ROW_NUMBER() OVER () followed by a
--- partitioned LAG over all_stores blew DuckDB's spill budget (the global
--- sort state grew unbounded). Running per bench bounds the window state
--- to one parquet at a time.
+-- Per-bench iteration bounds the window state to one parquet at a time;
+-- a global LAG over all_stores blew DuckDB's spill budget.
 --
 -- Ordering note: the parquet preserves the temporal order of stores within
 -- each (alloc_addr, generation), because to_parquet.py emits .stores rows
--- in the same order parser.py wrote them. ROW_NUMBER() OVER () enumerates
--- in physical scan order, so PARTITION BY (alloc, gen, offset) ORDER BY rn
--- reconstructs the per-location store sequence within this bench.
-WITH numbered AS (
-    SELECT *, ROW_NUMBER() OVER () AS rn FROM {bench}
-),
-lagged AS (
+-- in the same order parser.py wrote them. The view exposes parquet's
+-- physical row position as `rn` (file_row_number), so PARTITION BY
+-- (alloc, gen, offset) ORDER BY rn reconstructs the per-location store
+-- sequence within this bench. Earlier revisions used a `ROW_NUMBER() OVER
+-- () AS rn` CTE to fabricate that column, but the empty-OVER window forced
+-- a global materialise/sort that itself blew the spill budget — using the
+-- view's rn column avoids that pass.
+WITH lagged AS (
     SELECT
         alloc_type, value,
         LAG(value) OVER (
             PARTITION BY alloc_addr, generation, "offset"
             ORDER BY rn
         ) AS prev_value
-    FROM numbered
+    FROM {bench}
 )
 SELECT
     '{bench}'                                                        AS bench,

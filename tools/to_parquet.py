@@ -342,8 +342,13 @@ def refresh_duckdb(db_path: Path, db_dir: Path) -> None:
         for pq_path in parquets:
             view = view_name_for(pq_path)
             abs_path = str(pq_path.resolve()).replace("'", "''")
+            # `rn` exposes parquet's physical row position so window queries
+            # (silent stores, snapshot last-write) can ORDER BY a real column
+            # instead of `ROW_NUMBER() OVER ()`, whose global sort blows
+            # DuckDB's spill budget on the larger benches.
             con.execute(f'CREATE OR REPLACE VIEW "{view}" '
-                        f"AS SELECT * FROM '{abs_path}'")
+                        f"AS SELECT *, file_row_number AS rn "
+                        f"FROM read_parquet('{abs_path}', file_row_number=true)")
         if parquets:
             union_sql = " UNION ALL ".join(
                 f"SELECT '{view_name_for(p)}' AS bench, * FROM \"{view_name_for(p)}\""

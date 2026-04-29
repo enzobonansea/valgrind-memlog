@@ -12,32 +12,34 @@
 -- Aggregated per (bench, alloc_type) so the spread (mean / median / max)
 -- summarises how concentrated intra-buffer write traffic tends to be.
 -- Buffers with a single touched offset are excluded (Gini undefined).
+--
+-- Per-bench iteration so the per-offset hash agg stays bounded by one
+-- bench's (alloc_addr, generation, offset) cardinality.
 WITH per_offset AS (
-    SELECT bench, alloc_type, alloc_addr, generation, "offset",
+    SELECT alloc_type, alloc_addr, generation, "offset",
         COUNT(*) AS writes
-    FROM all_stores
-    GROUP BY bench, alloc_type, alloc_addr, generation, "offset"
+    FROM {bench}
+    GROUP BY alloc_type, alloc_addr, generation, "offset"
 ),
 ranked AS (
-    SELECT *,
+    SELECT alloc_type, alloc_addr, generation, writes,
         ROW_NUMBER() OVER (
-            PARTITION BY bench, alloc_addr, generation
-            ORDER BY writes) AS i,
-        COUNT(*)  OVER (PARTITION BY bench, alloc_addr, generation) AS n,
-        SUM(writes) OVER (PARTITION BY bench, alloc_addr, generation) AS total
+            PARTITION BY alloc_addr, generation
+            ORDER BY writes) AS i
     FROM per_offset
 ),
 buf_gini AS (
-    SELECT bench, alloc_type, alloc_addr, generation,
-        (2.0 * SUM(i * writes) - (MAX(n) + 1) * MAX(total))
-            / NULLIF(MAX(n) * MAX(total), 0)             AS gini,
-        MAX(n) AS n_offsets,
-        MAX(total) AS total_writes
+    SELECT alloc_type, alloc_addr, generation,
+        (2.0 * SUM(i * writes) - (COUNT(*) + 1) * SUM(writes))
+            / NULLIF(COUNT(*) * SUM(writes), 0)         AS gini,
+        COUNT(*)    AS n_offsets,
+        SUM(writes) AS total_writes
     FROM ranked
-    GROUP BY bench, alloc_type, alloc_addr, generation
+    GROUP BY alloc_type, alloc_addr, generation
 )
 SELECT
-    bench, alloc_type,
+    '{bench}' AS bench,
+    alloc_type,
     COUNT(*)::BIGINT                                       AS buffers,
     AVG(gini)                                              AS mean_gini,
     QUANTILE_CONT(gini, 0.5)                             AS median_gini,
@@ -47,5 +49,5 @@ SELECT
     SUM(gini * total_writes) / NULLIF(SUM(total_writes), 0) AS write_weighted_gini
 FROM buf_gini
 WHERE n_offsets > 1
-GROUP BY bench, alloc_type
-ORDER BY bench, alloc_type;
+GROUP BY alloc_type
+ORDER BY alloc_type;

@@ -6,38 +6,45 @@
 -- Pairs naturally with 17_intra_buffer_gini.sql (which summarises how
 -- skewed the within-buffer distribution is): this query shows where the
 -- skew actually lives.
-WITH per_buffer AS (
-    SELECT bench, alloc_addr, generation, alloc_size, alloc_type,
-        COUNT(*) AS stores
-    FROM all_stores
-    GROUP BY bench, alloc_addr, generation, alloc_size, alloc_type
+--
+-- Per-bench iteration so the per-(buffer, offset) hash agg stays bounded
+-- by one bench at a time. Single pass over {bench}: aggregate per
+-- (alloc_addr, generation, offset), derive per-buffer totals via window,
+-- then pick top-10 buffers × top-5 offsets — avoids the previous pattern's
+-- second pass + JOIN back to all_stores.
+WITH per_offset AS (
+    SELECT alloc_addr, generation, "offset",
+        any_value(alloc_type) AS alloc_type,
+        any_value(alloc_size) AS alloc_size,
+        COUNT(*)              AS writes
+    FROM {bench}
+    GROUP BY alloc_addr, generation, "offset"
+),
+buffer_totals AS (
+    SELECT *,
+        SUM(writes) OVER (PARTITION BY alloc_addr, generation) AS buffer_stores,
+        SUM(writes) OVER ()                                    AS bench_total
+    FROM per_offset
 ),
 top_buffers AS (
-    SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY bench ORDER BY stores DESC) AS buf_rnk
-    FROM per_buffer
-    QUALIFY buf_rnk <= 10
-),
-per_offset AS (
-    SELECT s.bench, s.alloc_addr, s.generation, s."offset",
-        COUNT(*) AS writes,
-        ANY_VALUE(tb.stores) AS buffer_stores,
-        ANY_VALUE(tb.alloc_type) AS alloc_type,
-        ANY_VALUE(tb.alloc_size) AS alloc_size
-    FROM all_stores s
-    JOIN top_buffers tb USING (bench, alloc_addr, generation)
-    GROUP BY s.bench, s.alloc_addr, s.generation, s."offset"
+    SELECT alloc_addr, generation, buffer_stores
+    FROM (
+        SELECT DISTINCT alloc_addr, generation, buffer_stores
+        FROM buffer_totals
+    )
+    ORDER BY buffer_stores DESC
+    LIMIT 10
 ),
 ranked AS (
-    SELECT *,
+    SELECT bt.*,
         ROW_NUMBER() OVER (
-            PARTITION BY bench, alloc_addr, generation
-            ORDER BY writes DESC) AS off_rnk,
-        SUM(writes) OVER (PARTITION BY bench) AS bench_total
-    FROM per_offset
+            PARTITION BY bt.alloc_addr, bt.generation
+            ORDER BY writes DESC) AS off_rnk
+    FROM buffer_totals bt
+    JOIN top_buffers USING (alloc_addr, generation)
 )
 SELECT
-    bench,
+    '{bench}' AS bench,
     printf('0x%x', alloc_addr)                  AS addr,
     generation,
     alloc_type,
@@ -48,4 +55,4 @@ SELECT
     100.0 * writes / NULLIF(bench_total, 0)     AS pct_of_bench
 FROM ranked
 WHERE off_rnk <= 5
-ORDER BY bench, buffer_stores DESC, off_rnk;
+ORDER BY buffer_stores DESC, off_rnk;

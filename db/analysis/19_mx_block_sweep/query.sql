@@ -8,36 +8,24 @@
 -- Threshold of 8 matches MXFP8 (E4M3); we also report viability at spread
 -- <= 4 (a hypothetical MXFP4-friendly threshold).
 --
--- Per-bench iteration: a global ROW_NUMBER() over all_stores blew DuckDB's
--- spill budget on the silent-stores query (same pattern). Running per
--- bench bounds the window state to one parquet at a time.
-WITH numbered AS (
-    SELECT *, ROW_NUMBER() OVER () AS rn
+-- Per-bench iteration bounds window state to one parquet at a time.
+-- Snapshot extraction uses arg_max(value, rn) (rn = parquet file_row_number
+-- from the view) instead of the earlier ROW_NUMBER OVER () + QUALIFY
+-- pattern. Block sizes are swept by aggregating five GROUP BYs and UNION
+-- ALL'ing the results, rather than CROSS JOIN'ing rows by block size
+-- (which 5×'d the input volume).
+WITH snapshot AS (
+    SELECT alloc_type, alloc_addr, generation, "offset",
+        arg_max(value, rn) AS value
     FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
-),
-snapshot AS (
-    SELECT alloc_type, alloc_addr, generation, "offset", value
-    FROM numbered
-    QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY alloc_addr, generation, "offset"
-        ORDER BY rn DESC) = 1
+    GROUP BY alloc_type, alloc_addr, generation, "offset"
 ),
 indexed AS (
-    SELECT *,
+    SELECT alloc_type, alloc_addr, generation,
         ROW_NUMBER() OVER (
             PARTITION BY alloc_addr, generation
-            ORDER BY "offset") - 1 AS idx
-    FROM snapshot
-),
-expanded AS (
-    SELECT i.*, sz.block_size
-    FROM indexed i
-    CROSS JOIN (VALUES (8), (16), (32), (64), (128)) AS sz(block_size)
-),
-exped AS (
-    SELECT alloc_type, alloc_addr, generation, block_size,
-        idx / block_size AS block_id,
+            ORDER BY "offset") - 1 AS idx,
         CASE
             WHEN value = 0 THEN NULL
             WHEN alloc_type = '64bits'
@@ -47,14 +35,33 @@ exped AS (
             WHEN alloc_type = '64bits' THEN ((value >> 52) & 2047)::INT
             WHEN alloc_type = '32bits' THEN ((value >> 23) & 255)::INT
         END AS exp_bits
-    FROM expanded
+    FROM snapshot
 ),
 spreads AS (
-    SELECT alloc_type, block_size, alloc_addr, generation, block_id,
-        MAX(exp_bits) - MIN(exp_bits) AS spread,
-        COUNT(exp_bits)               AS valid_n
-    FROM exped
-    GROUP BY alloc_type, block_size, alloc_addr, generation, block_id
+    SELECT alloc_type, 8 AS block_size, alloc_addr, generation, idx / 8 AS block_id,
+        MAX(exp_bits) - MIN(exp_bits) AS spread, COUNT(exp_bits) AS valid_n
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 8
+    UNION ALL
+    SELECT alloc_type, 16, alloc_addr, generation, idx / 16,
+        MAX(exp_bits) - MIN(exp_bits), COUNT(exp_bits)
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 16
+    UNION ALL
+    SELECT alloc_type, 32, alloc_addr, generation, idx / 32,
+        MAX(exp_bits) - MIN(exp_bits), COUNT(exp_bits)
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 32
+    UNION ALL
+    SELECT alloc_type, 64, alloc_addr, generation, idx / 64,
+        MAX(exp_bits) - MIN(exp_bits), COUNT(exp_bits)
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 64
+    UNION ALL
+    SELECT alloc_type, 128, alloc_addr, generation, idx / 128,
+        MAX(exp_bits) - MIN(exp_bits), COUNT(exp_bits)
+    FROM indexed
+    GROUP BY alloc_type, alloc_addr, generation, idx / 128
 )
 SELECT
     '{bench}' AS bench,

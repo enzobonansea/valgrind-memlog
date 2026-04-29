@@ -3,22 +3,19 @@
 -- — write that puts back the value already at (alloc_addr, generation,
 -- offset) — but grouped by the first non-allocator stack frame.
 --
--- Per-bench iteration: a global ROW_NUMBER() + LAG over all_stores blew
--- DuckDB's spill budget on 09_silent_stores (same pattern). Running per
--- bench bounds the window state to one parquet at a time. Per-row LAG is
--- computed once for this bench, then aggregated by alloc_stack, then by
--- alloc-site (so the regex runs once per unique stack rather than per
--- store).
-WITH numbered AS (
-    SELECT *, ROW_NUMBER() OVER () AS rn FROM {bench}
-),
-lagged AS (
+-- Per-bench iteration bounds the window state to one parquet at a time.
+-- Per-row LAG is computed once for this bench, then aggregated by
+-- alloc_stack, then by alloc-site (so the regex runs once per unique
+-- stack rather than per store).  ORDER BY uses the view's `rn` column
+-- (parquet file_row_number) instead of an upstream ROW_NUMBER() OVER ()
+-- whose global materialise blew DuckDB's spill budget.
+WITH lagged AS (
     SELECT
         alloc_stack, value,
         LAG(value) OVER (
             PARTITION BY alloc_addr, generation, "offset"
             ORDER BY rn) AS prev_value
-    FROM numbered
+    FROM {bench}
 ),
 per_stack AS (
     SELECT

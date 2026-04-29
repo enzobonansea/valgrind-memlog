@@ -18,39 +18,44 @@
 --
 -- Citations: Xiao 2023 ICML (SmoothQuant); Lin 2024 MLSys (AWQ);
 -- Dettmers 2022 NeurIPS (LLM.int8()); Tseng 2024 NeurIPS (QuIP#).
+--
+-- Per-bench iteration so per-stack hash agg is bounded by one bench's
+-- stack dictionary.  Quantiles use APPROX_QUANTILE (t-digest, bounded
+-- state) instead of QUANTILE_CONT (which materialises full per-group
+-- value lists).
 WITH abs_vals AS (
     SELECT
-        bench, alloc_stack, alloc_type, "offset",
+        alloc_stack, alloc_type, "offset",
         CASE alloc_type
             WHEN '32bits' THEN value & ((1::UBIGINT << 31) - 1)
             WHEN '64bits' THEN value & ((1::UBIGINT << 63) - 1)
         END AS abs_bits
-    FROM all_stores
+    FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits') AND value <> 0
 ),
 thresh AS (
-    SELECT bench, alloc_stack, alloc_type,
-        QUANTILE_CONT(abs_bits, 0.99)  AS p99,
-        QUANTILE_CONT(abs_bits, 0.999) AS p999
+    SELECT alloc_stack, alloc_type,
+        APPROX_QUANTILE(abs_bits, 0.99)  AS p99,
+        APPROX_QUANTILE(abs_bits, 0.999) AS p999
     FROM abs_vals
-    GROUP BY bench, alloc_stack, alloc_type
+    GROUP BY alloc_stack, alloc_type
 ),
 flagged AS (
-    SELECT av.bench, av.alloc_stack, av.alloc_type, av."offset",
+    SELECT av.alloc_stack, av.alloc_type, av."offset",
         (av.abs_bits >= t.p99)  AS o99,
         (av.abs_bits >= t.p999) AS o999
     FROM abs_vals av
-    JOIN thresh t USING (bench, alloc_stack, alloc_type)
+    JOIN thresh t USING (alloc_stack, alloc_type)
 ),
 per_stack AS (
-    SELECT bench, alloc_stack, alloc_type,
+    SELECT alloc_stack, alloc_type,
         COUNT(*)::BIGINT                                        AS total,
         SUM(o99::INT)::BIGINT                                   AS n_outlier_99,
         SUM(o999::INT)::BIGINT                                  AS n_outlier_999,
         COUNT(DISTINCT "offset")::BIGINT                        AS distinct_offsets,
         COUNT(DISTINCT CASE WHEN o999 THEN "offset" END)::BIGINT AS outlier_offsets
     FROM flagged
-    GROUP BY bench, alloc_stack, alloc_type
+    GROUP BY alloc_stack, alloc_type
 ),
 sited AS (
     SELECT *,
@@ -72,7 +77,7 @@ sited AS (
     FROM per_stack
 ),
 agg AS (
-    SELECT bench, alloc_type, site,
+    SELECT alloc_type, site,
         SUM(total)::BIGINT             AS total,
         SUM(n_outlier_999)::BIGINT     AS n_outlier_999,
         SUM(distinct_offsets)::BIGINT  AS distinct_offsets,
@@ -81,14 +86,14 @@ agg AS (
             / NULLIF(SUM(distinct_offsets), 0) AS channel_frac
     FROM sited
     WHERE site IS NOT NULL AND site <> ''
-    GROUP BY bench, alloc_type, site
+    GROUP BY alloc_type, site
     HAVING SUM(total) >= 1000
 )
-SELECT bench, alloc_type, site, total,
+SELECT '{bench}' AS bench, alloc_type, site, total,
        n_outlier_999, distinct_offsets, outlier_offsets, channel_frac
 FROM (
-    SELECT *, ROW_NUMBER() OVER (PARTITION BY bench ORDER BY total DESC) AS rnk
+    SELECT *, ROW_NUMBER() OVER (ORDER BY total DESC) AS rnk
     FROM agg
 )
 WHERE rnk <= 20
-ORDER BY bench, total DESC;
+ORDER BY total DESC;

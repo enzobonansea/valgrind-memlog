@@ -20,17 +20,19 @@
 -- shares (which we expect to track IEEE bit-pattern populations) suddenly
 -- skew toward saturated exponents or random distributions. The 32bits row
 -- mirrors this using the binary32 layout for cross-check.
+--
+-- Per-bench iteration bounds wall time per query — running over all_stores
+-- in one shot pushed past the 1h watchdog on the cumulative-disk side.
 WITH d AS (
     SELECT
-        bench,
         alloc_type,
         value,
         ((value >> 52) & 2047) AS exp64,
         ((value >> 23) & 255)  AS exp32
-    FROM all_stores
+    FROM {bench}
 )
 SELECT
-    bench,
+    '{bench}' AS bench,
     alloc_type,
     COUNT(*)::BIGINT                                                 AS stores,
     SUM(value = 0)::DOUBLE / COUNT(*)                                AS frac_zero,
@@ -49,5 +51,5 @@ SELECT
     SUM(alloc_type = '32bits' AND exp32 = 255)::DOUBLE
         / NULLIF(COUNT(*), 0)                                        AS frac_inf_nan_f32
 FROM d
-GROUP BY bench, alloc_type
-ORDER BY bench, alloc_type;
+GROUP BY alloc_type
+ORDER BY alloc_type;

@@ -7,31 +7,44 @@
 -- Skip-list and site-extraction logic match 13_per_function_feasibility.sql.
 -- Trailing-zero column gives a quick precision proxy without the full
 -- format-feasibility breakdown.
-WITH per_stack AS (
-    SELECT
-        bench, alloc_stack,
-        COUNT(*)::BIGINT                                            AS stores,
-        COUNT(DISTINCT (alloc_addr, generation))::BIGINT            AS buffers,
-        AVG(alloc_size)                                             AS mean_alloc_size,
-        AVG(
-            CASE
+--
+-- Per-bench iteration so the per-stack hash agg stays bounded by one
+-- bench's stack dictionary (and so COUNT(DISTINCT (alloc_addr, generation))
+-- is replaced by a two-stage GROUP BY: collapse to one row per buffer
+-- first, then count rows per site).
+WITH per_buffer AS (
+    SELECT alloc_stack, alloc_addr, generation,
+        any_value(alloc_size) AS alloc_size,
+        COUNT(*)::BIGINT      AS stores,
+        SUM(CASE
                 WHEN alloc_type NOT IN ('32bits', '64bits') THEN NULL
                 WHEN m = 0 AND alloc_type = '64bits' THEN 52
                 WHEN m = 0 AND alloc_type = '32bits' THEN 23
                 ELSE bit_count(xor(m::BIGINT, (m - 1)::BIGINT)) - 1
-            END
-        )                                                           AS mean_trailing_z
+            END)::DOUBLE      AS sum_trailing_z,
+        SUM(CASE WHEN alloc_type IN ('32bits', '64bits') THEN 1 ELSE 0 END)::BIGINT
+                              AS num_trailing_z
     FROM (
-        SELECT bench, alloc_stack, alloc_addr, generation,
+        SELECT alloc_stack, alloc_addr, generation,
                alloc_type, alloc_size,
                CASE alloc_type
                    WHEN '64bits' THEN value & ((1::UBIGINT << 52) - 1)
                    WHEN '32bits' THEN value & ((1::UBIGINT << 23) - 1)
                    ELSE NULL
                END AS m
-        FROM all_stores
+        FROM {bench}
     )
-    GROUP BY bench, alloc_stack
+    GROUP BY alloc_stack, alloc_addr, generation
+),
+per_stack AS (
+    SELECT alloc_stack,
+        SUM(stores)::BIGINT                                    AS stores,
+        COUNT(*)::BIGINT                                       AS buffers,
+        SUM(stores * alloc_size)::DOUBLE / NULLIF(SUM(stores), 0)
+                                                               AS mean_alloc_size,
+        SUM(sum_trailing_z) / NULLIF(SUM(num_trailing_z), 0)   AS mean_trailing_z
+    FROM per_buffer
+    GROUP BY alloc_stack
 ),
 sited AS (
     SELECT *,
@@ -53,7 +66,7 @@ sited AS (
     FROM per_stack
 ),
 agg AS (
-    SELECT bench, site,
+    SELECT site,
         SUM(stores)::BIGINT                              AS stores,
         SUM(buffers)::BIGINT                             AS buffers,
         SUM(stores * mean_alloc_size) / SUM(stores)      AS mean_alloc_size,
@@ -61,17 +74,17 @@ agg AS (
             / NULLIF(SUM(stores), 0)                     AS mean_trailing_z
     FROM sited
     WHERE site IS NOT NULL AND site <> ''
-    GROUP BY bench, site
+    GROUP BY site
 )
-SELECT bench, site, stores,
-       100.0 * stores / SUM(stores) OVER (PARTITION BY bench)  AS pct_of_bench,
+SELECT '{bench}' AS bench, site, stores,
+       100.0 * stores / SUM(stores) OVER ()               AS pct_of_bench,
        buffers,
        mean_alloc_size,
        mean_trailing_z
 FROM (
     SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY bench ORDER BY stores DESC) AS rnk
+        ROW_NUMBER() OVER (ORDER BY stores DESC) AS rnk
     FROM agg
 )
 WHERE rnk <= 15
-ORDER BY bench, stores DESC;
+ORDER BY stores DESC;

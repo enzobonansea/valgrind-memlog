@@ -11,18 +11,22 @@
 --                          whole buffer (à la frequent-value caches)
 --   distinct_values huge → low value locality, dictionary compression won't
 --                          help
+--
+-- Per-bench iteration so the per-value hash agg stays bounded by one
+-- bench's distinct-value cardinality (which can be hundreds of millions
+-- on the bigger benches; running over all_stores at once spills hard).
 WITH counts AS (
-    SELECT bench, alloc_type, value, COUNT(*) AS n
-    FROM all_stores
-    GROUP BY bench, alloc_type, value
+    SELECT alloc_type, value, COUNT(*) AS n
+    FROM {bench}
+    GROUP BY alloc_type, value
 ),
 ranked AS (
-    SELECT bench, alloc_type, n,
-        ROW_NUMBER() OVER (PARTITION BY bench, alloc_type ORDER BY n DESC) AS rnk
+    SELECT alloc_type, n,
+        ROW_NUMBER() OVER (PARTITION BY alloc_type ORDER BY n DESC) AS rnk
     FROM counts
 )
 SELECT
-    bench, alloc_type,
+    '{bench}' AS bench, alloc_type,
     SUM(n)::BIGINT                                                      AS total_stores,
     COUNT(*)::BIGINT                                                    AS distinct_values,
     SUM(n) FILTER (WHERE rnk = 1)::DOUBLE    / NULLIF(SUM(n), 0)        AS top1_frac,
@@ -31,5 +35,5 @@ SELECT
     SUM(n) FILTER (WHERE rnk <= 256)::DOUBLE / NULLIF(SUM(n), 0)        AS top256_frac,
     SUM(n) FILTER (WHERE rnk <= 1024)::DOUBLE/ NULLIF(SUM(n), 0)        AS top1024_frac
 FROM ranked
-GROUP BY bench, alloc_type
-ORDER BY bench, alloc_type;
+GROUP BY alloc_type
+ORDER BY alloc_type;
