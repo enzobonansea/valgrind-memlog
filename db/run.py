@@ -52,7 +52,7 @@ THREADS      = 4
 # numbers are well inside that ceiling.
 WATCH_SPILL_GB = 100   # max .duckdb_tmp size
 WATCH_FREE_GB  = 30    # min free disk on /
-WATCH_SWAP_GB  = 13.5  # max swap used (out of 14 GB); Q09/Q21 spill management needs headroom
+WATCH_SWAP_GB  = 15.5  # max swap used (out of 16 GB); Q09/Q21 spill management needs headroom
 WATCH_TIME_S   = 3600  # max wall time per query — kill and retry later
 WATCH_POLL_S   = 5
 
