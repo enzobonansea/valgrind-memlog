@@ -52,7 +52,7 @@ THREADS      = 4
 # numbers are well inside that ceiling.
 WATCH_SPILL_GB = 100   # max .duckdb_tmp size
 WATCH_FREE_GB  = 30    # min free disk on /
-WATCH_SWAP_GB  = 7     # max swap used (out of 8 GB)
+WATCH_SWAP_GB  = 7.8   # max swap used (out of 8 GB); Q09/Q21 spill management needs headroom
 WATCH_TIME_S   = 3600  # max wall time per query — kill and retry later
 WATCH_POLL_S   = 5
 
@@ -149,10 +149,11 @@ def watchdog(con: duckdb.DuckDBPyConnection,
             except Exception:
                 pass
             return
-        # Print progress every 30 seconds
-        if elapsed - last_progress >= 30:
-            print(f"  [{query_name}] {elapsed:.0f}s elapsed | spill: {spill_gb:.1f}GB / {spill_limit:.0f}GB | "
-                  f"free: {free_gb:.1f}GB | swap: {swap_gb:.1f}GB",
+        # Print progress every 10 seconds
+        if elapsed - last_progress >= 10:
+            pct_spill = 100.0 * spill_gb / spill_limit if spill_limit > 0 else 0
+            print(f"  [{query_name}] {elapsed:.0f}s | spill: {spill_gb:.1f}/{spill_limit:.0f}GB ({pct_spill:.0f}%) | "
+                  f"free: {free_gb:.0f}GB",
                   file=sys.stderr, flush=True)
             last_progress = elapsed
 
@@ -191,11 +192,15 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
                 # contain `{...}` text (e.g. set-builder notation in docs)
                 # that str.format would misinterpret as a placeholder.
                 bench_t0 = time.perf_counter()
+                total_elapsed = bench_t0 - t0
+                print(f"  [{name}] [{i}/{len(benches)}] starting {bench} (total elapsed: {total_elapsed:.0f}s)...",
+                      file=sys.stderr, flush=True)
                 result_df = con.execute(sql.replace("{bench}", bench)).fetchdf()
                 frames.append(result_df)
                 bench_elapsed = time.perf_counter() - bench_t0
                 spill_gb = _spill_size_gb()
-                print(f"  [{name}] {i}/{len(benches)} {bench}: {len(result_df)} rows in {bench_elapsed:.1f}s (spill: {spill_gb:.1f}GB)",
+                total_elapsed = time.perf_counter() - t0
+                print(f"  [{name}] [{i}/{len(benches)}] {bench}: {len(result_df)} rows in {bench_elapsed:.1f}s (spill: {spill_gb:.1f}GB, total: {total_elapsed:.0f}s)",
                       file=sys.stderr, flush=True)
             df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
         else:
