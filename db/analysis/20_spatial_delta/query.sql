@@ -1,3 +1,5 @@
+-- @set threads 2
+-- @set watch_spill_gb 130
 -- Spatial value similarity between physically-adjacent offsets in the
 -- last-write snapshot of each buffer. Complements 09 and 10 (which measure
 -- *temporal* similarity — same-offset, consecutive stores) by measuring

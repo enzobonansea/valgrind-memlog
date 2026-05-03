@@ -1,3 +1,4 @@
+-- @set threads 2
 -- Minimum exponent bit-width required per allocation site to cover the
 -- observed dynamic range without overflow / underflow. Inspired by the
 -- FPVM "tiny floats" paper (Hale et al., HPDC '26 ref/hpdc26-paper73.md):

@@ -1,3 +1,5 @@
+-- @set threads 2
+-- @set watch_spill_gb 130
 -- MX (microscaling) format feasibility per (bench, alloc_type).
 -- Mirrors figs-generators/analyze_fp8_mx.py.
 --

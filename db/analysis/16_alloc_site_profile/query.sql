@@ -1,3 +1,4 @@
+-- @set threads 2
 -- Per-allocation-site write profiling (paper figs alloc_site_profile_*).
 -- For each benchmark, ranks the allocation sites (extracted from the first
 -- non-allocator stack frame) by total stores. Reveals whether write traffic
@@ -81,10 +82,6 @@ SELECT '{bench}' AS bench, site, stores,
        buffers,
        mean_alloc_size,
        mean_trailing_z
-FROM (
-    SELECT *,
-        ROW_NUMBER() OVER (ORDER BY stores DESC) AS rnk
-    FROM agg
-)
-WHERE rnk <= 15
-ORDER BY stores DESC;
+FROM agg
+ORDER BY stores DESC
+LIMIT 15;

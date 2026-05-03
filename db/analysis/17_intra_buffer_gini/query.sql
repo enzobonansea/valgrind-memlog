@@ -1,3 +1,4 @@
+-- @set threads 2
 -- Intra-buffer write concentration via the Gini coefficient (paper "Hot
 -- Offsets" / Gini analysis).
 --
@@ -42,7 +43,7 @@ SELECT
     alloc_type,
     COUNT(*)::BIGINT                                       AS buffers,
     AVG(gini)                                              AS mean_gini,
-    QUANTILE_CONT(gini, 0.5)                             AS median_gini,
+    APPROX_QUANTILE(gini, 0.5)                             AS median_gini,
     MIN(gini)                                              AS min_gini,
     MAX(gini)                                              AS max_gini,
     -- write-weighted mean: heavier buffers count proportionally

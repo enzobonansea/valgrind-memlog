@@ -1,3 +1,5 @@
+-- @set threads 2
+-- @set watch_spill_gb 130
 -- MX (microscaling) viability across block sizes — sweep extension of 14.
 -- Choosing a block size is the central design trade-off in MX formats:
 -- larger blocks amortise the shared-scale overhead but tolerate less
@@ -21,7 +23,7 @@ WITH snapshot AS (
     WHERE alloc_type IN ('32bits', '64bits')
     GROUP BY alloc_type, alloc_addr, generation, "offset"
 ),
-indexed AS (
+indexed AS MATERIALIZED (
     SELECT alloc_type, alloc_addr, generation,
         ROW_NUMBER() OVER (
             PARTITION BY alloc_addr, generation

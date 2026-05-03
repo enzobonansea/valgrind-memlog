@@ -1,3 +1,5 @@
+-- @set threads 2
+-- @set watch_spill_gb 130
 -- MX scale-sharing efficiency: of all the per-block scales an MX encoder
 -- would emit, how many are actually distinct? A low distinct-fraction
 -- means many adjacent blocks share the same shared exponent and the
@@ -32,7 +34,7 @@ WITH snapshot AS (
     WHERE alloc_type IN ('32bits', '64bits')
     GROUP BY alloc_type, alloc_addr, generation, "offset"
 ),
-indexed AS (
+indexed AS MATERIALIZED (
     SELECT alloc_type, alloc_addr, generation,
         ROW_NUMBER() OVER (
             PARTITION BY alloc_addr, generation

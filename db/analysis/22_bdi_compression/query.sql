@@ -1,3 +1,5 @@
+-- @set threads 2
+-- @set watch_spill_gb 130
 -- BDI (Base+Delta) cache-line compressibility per (bench, alloc_type).
 -- BDI [Pekhimenko 2012] partitions a 64-byte cache line into elements,
 -- picks one as a base, and stores the rest as fixed-width signed deltas

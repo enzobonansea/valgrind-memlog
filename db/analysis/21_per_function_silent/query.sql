@@ -1,3 +1,6 @@
+-- @set threads 1
+-- @set watch_spill_gb 200
+-- @set watch_time_s 10800
 -- Per-function silent-store rate (paper Table 2 headline: "CAM4's 4.8%
 -- aggregate hides 49.8% in dyn_run"). Same definition as 09_silent_stores
 -- — write that puts back the value already at (alloc_addr, generation,

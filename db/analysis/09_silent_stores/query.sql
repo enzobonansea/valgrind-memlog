@@ -1,3 +1,6 @@
+-- @set threads 1
+-- @set watch_spill_gb 200
+-- @set watch_time_s 10800
 -- Silent stores: writes that put the same value back into the same
 -- (alloc_addr, generation, offset) location as the most recent prior write.
 -- Useful as an upper bound on how much store traffic a "silent-store

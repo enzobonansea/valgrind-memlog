@@ -1,3 +1,4 @@
+-- @set threads 8
 -- Per-allocation-site reduced-precision feasibility (matches paper Table 4).
 -- Same trailing-zero thresholds as 12_format_feasibility.sql, but grouped by
 -- the first non-allocator stack frame so the per-function divergence shows up

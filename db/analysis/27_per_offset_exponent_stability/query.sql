@@ -1,3 +1,4 @@
+-- @set threads 2
 -- Per-offset exponent stability across stores (decides per-tensor vs.
 -- per-channel vs. per-token scaling for FP8 / MXFP4). For each
 -- (alloc_site, offset) we look at the IEEE-754 exponent of every store
@@ -37,13 +38,13 @@ WITH ex AS (
     WHERE alloc_type IN ('32bits', '64bits') AND value <> 0
 ),
 per_offset AS (
-    SELECT alloc_stack, alloc_type, alloc_addr, generation, "offset",
+    SELECT ANY_VALUE(alloc_stack) AS alloc_stack, alloc_type, alloc_addr, generation, "offset",
         MAX(unbiased_exp) - MIN(unbiased_exp) AS exp_range,
         COUNT(*) AS n
     FROM ex
     WHERE biased_exp <> 0
       AND biased_exp <> CASE alloc_type WHEN '64bits' THEN 2047 ELSE 255 END
-    GROUP BY alloc_stack, alloc_type, alloc_addr, generation, "offset"
+    GROUP BY alloc_type, alloc_addr, generation, "offset"
     HAVING COUNT(*) >= 2
 ),
 per_stack AS (

@@ -1,3 +1,4 @@
+-- @set threads 2
 -- Top hot offsets within the heaviest buffers (paper hot_offsets_* figs).
 -- For each benchmark, picks the 10 buffers with the most stores; for each
 -- of those, lists the 5 most-written byte offsets and their share of the

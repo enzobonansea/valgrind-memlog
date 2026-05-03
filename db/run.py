@@ -18,6 +18,7 @@ literal `'{bench}' AS bench` if you need the bench column in the output."""
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import sys
 import threading
@@ -54,6 +55,13 @@ WATCH_FREE_GB  = 30    # min free disk on /
 WATCH_SWAP_GB  = 7     # max swap used (out of 8 GB)
 WATCH_TIME_S   = 3600  # max wall time per query — kill and retry later
 WATCH_POLL_S   = 5
+
+_SET_RE = re.compile(r"^--\s*@set\s+(\w+)\s+(.+?)\s*$", re.MULTILINE)
+
+
+def _parse_directives(sql: str) -> dict:
+    """Parse -- @set <key> <value> directives from SQL comments."""
+    return {m.group(1): m.group(2).strip() for m in _SET_RE.finditer(sql)}
 
 
 def resolve_analysis(arg: Path) -> Path:
@@ -114,20 +122,23 @@ def _spill_size_gb() -> float:
 def watchdog(con: duckdb.DuckDBPyConnection,
              stop: threading.Event,
              query_name: str,
-             t0: float) -> None:
+             t0: float,
+             spill_limit: float = WATCH_SPILL_GB,
+             time_limit: float = WATCH_TIME_S) -> None:
     """Interrupt the running query if disk/spill/swap cross safety thresholds
-    or wall time exceeds WATCH_TIME_S. Runs in a daemon thread; self-exits
+    or wall time exceeds time_limit. Runs in a daemon thread; self-exits
     when `stop` is set."""
+    last_progress = t0
     while not stop.wait(WATCH_POLL_S):
         spill_gb = _spill_size_gb()
         free_gb  = shutil.disk_usage(DB_DIR).free / 1024**3
         swap_gb  = _swap_used_gb()
         elapsed  = time.perf_counter() - t0
         reason = None
-        if spill_gb > WATCH_SPILL_GB: reason = "spill"
+        if spill_gb > spill_limit: reason = "spill"
         elif free_gb < WATCH_FREE_GB: reason = "disk"
         elif swap_gb > WATCH_SWAP_GB: reason = "swap"
-        elif elapsed > WATCH_TIME_S:  reason = "time"
+        elif elapsed > time_limit:  reason = "time"
         if reason:
             print(f"[{query_name}] watchdog ({reason}): "
                   f"spill={spill_gb:.1f}GB free={free_gb:.1f}GB "
@@ -138,6 +149,12 @@ def watchdog(con: duckdb.DuckDBPyConnection,
             except Exception:
                 pass
             return
+        # Print progress every 30 seconds
+        if elapsed - last_progress >= 30:
+            print(f"  [{query_name}] {elapsed:.0f}s elapsed | spill: {spill_gb:.1f}GB / {spill_limit:.0f}GB | "
+                  f"free: {free_gb:.1f}GB | swap: {swap_gb:.1f}GB",
+                  file=sys.stderr, flush=True)
+            last_progress = elapsed
 
 
 def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
@@ -148,24 +165,49 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
     name     = query_path.parent.name  # analysis folder name
     t0 = time.perf_counter()
 
+    # Parse per-query directives
+    directives = _parse_directives(sql)
+    threads = int(directives.get("threads", THREADS))
+    memory_limit = directives.get("memory_limit", MEMORY_LIMIT)
+    spill_limit = float(directives.get("watch_spill_gb", WATCH_SPILL_GB))
+    time_limit = float(directives.get("watch_time_s", WATCH_TIME_S))
+
+    # Apply per-query overrides
+    if threads != THREADS:
+        con.execute(f"PRAGMA threads={threads}")
+    if memory_limit != MEMORY_LIMIT:
+        con.execute(f"PRAGMA memory_limit='{memory_limit}'")
+
     stop = threading.Event()
-    wd   = threading.Thread(target=watchdog, args=(con, stop, name, t0),
+    wd   = threading.Thread(target=watchdog, args=(con, stop, name, t0, spill_limit, time_limit),
                              daemon=True)
     wd.start()
     try:
         if "{bench}" in sql:
             frames: list[pd.DataFrame] = []
-            for bench in list_benches(con):
+            benches = list_benches(con)
+            for i, bench in enumerate(benches, 1):
                 # `replace` instead of `format` — SQL comments may legitimately
                 # contain `{...}` text (e.g. set-builder notation in docs)
                 # that str.format would misinterpret as a placeholder.
-                frames.append(con.execute(sql.replace("{bench}", bench)).fetchdf())
+                bench_t0 = time.perf_counter()
+                result_df = con.execute(sql.replace("{bench}", bench)).fetchdf()
+                frames.append(result_df)
+                bench_elapsed = time.perf_counter() - bench_t0
+                spill_gb = _spill_size_gb()
+                print(f"  [{name}] {i}/{len(benches)} {bench}: {len(result_df)} rows in {bench_elapsed:.1f}s (spill: {spill_gb:.1f}GB)",
+                      file=sys.stderr, flush=True)
             df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
         else:
             df = con.execute(sql).fetchdf()
     finally:
         stop.set()
         wd.join(timeout=WATCH_POLL_S * 2)
+        # Restore defaults
+        if threads != THREADS:
+            con.execute(f"PRAGMA threads={THREADS}")
+        if memory_limit != MEMORY_LIMIT:
+            con.execute(f"PRAGMA memory_limit='{MEMORY_LIMIT}'")
 
     df.to_csv(out_path, index=False)
     elapsed = time.perf_counter() - t0

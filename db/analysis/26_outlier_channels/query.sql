@@ -1,3 +1,4 @@
+-- @set threads 2
 -- Outlier-channel concentration per allocation site (SmoothQuant / AWQ /
 -- QuIP-style analysis). LLM-quantization papers show that quantization
 -- error is dominated by a small set of outlier "channels" — fixed
@@ -52,8 +53,8 @@ per_stack AS (
         COUNT(*)::BIGINT                                        AS total,
         SUM(o99::INT)::BIGINT                                   AS n_outlier_99,
         SUM(o999::INT)::BIGINT                                  AS n_outlier_999,
-        COUNT(DISTINCT "offset")::BIGINT                        AS distinct_offsets,
-        COUNT(DISTINCT CASE WHEN o999 THEN "offset" END)::BIGINT AS outlier_offsets
+        APPROX_COUNT_DISTINCT("offset")::BIGINT                        AS distinct_offsets,
+        APPROX_COUNT_DISTINCT(CASE WHEN o999 THEN "offset" END)::BIGINT AS outlier_offsets
     FROM flagged
     GROUP BY alloc_stack, alloc_type
 ),

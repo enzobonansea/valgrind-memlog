@@ -1,3 +1,5 @@
+-- @set threads 2
+-- @set watch_spill_gb 130
 -- Compressed-cache-line homogeneity per (bench, alloc_type). For each
 -- 64-byte aligned window in the last-write snapshot of each buffer we
 -- check whether all stored values share their high bits — in which case a
