@@ -53,7 +53,6 @@ THREADS      = 4
 WATCH_SPILL_GB = 100   # max .duckdb_tmp size
 WATCH_FREE_GB  = 30    # min free disk on /
 WATCH_SWAP_GB  = 15.5  # max swap used (out of 16 GB); Q09/Q21 spill management needs headroom
-WATCH_TIME_S   = 3600  # max wall time per query — kill and retry later
 WATCH_POLL_S   = 5
 
 _SET_RE = re.compile(r"^--\s*@set\s+(\w+)\s+(.+?)\s*$", re.MULTILINE)
@@ -123,11 +122,9 @@ def watchdog(con: duckdb.DuckDBPyConnection,
              stop: threading.Event,
              query_name: str,
              t0: float,
-             spill_limit: float = WATCH_SPILL_GB,
-             time_limit: float = WATCH_TIME_S) -> None:
-    """Interrupt the running query if disk/spill/swap cross safety thresholds
-    or wall time exceeds time_limit. Runs in a daemon thread; self-exits
-    when `stop` is set."""
+             spill_limit: float = WATCH_SPILL_GB) -> None:
+    """Interrupt the running query if disk/spill/swap cross safety thresholds.
+    Runs in a daemon thread; self-exits when `stop` is set."""
     last_progress = t0
     while not stop.wait(WATCH_POLL_S):
         spill_gb = _spill_size_gb()
@@ -138,7 +135,6 @@ def watchdog(con: duckdb.DuckDBPyConnection,
         if spill_gb > spill_limit: reason = "spill"
         elif free_gb < WATCH_FREE_GB: reason = "disk"
         elif swap_gb > WATCH_SWAP_GB: reason = "swap"
-        elif elapsed > time_limit:  reason = "time"
         if reason:
             print(f"[{query_name}] watchdog ({reason}): "
                   f"spill={spill_gb:.1f}GB free={free_gb:.1f}GB "
@@ -161,62 +157,90 @@ def watchdog(con: duckdb.DuckDBPyConnection,
 def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
     """Execute query_path's SQL and write result.csv into the same folder."""
     reset_tmp_dir()
-    sql = query_path.read_text()
-    out_path = query_path.parent / "result.csv"
-    name     = query_path.parent.name  # analysis folder name
-    t0 = time.perf_counter()
+    sql       = query_path.read_text()
+    out_path  = query_path.parent / "result.csv"
+    done_path = query_path.parent / "result.complete"
+    name      = query_path.parent.name
+    t0        = time.perf_counter()
 
-    # Parse per-query directives
-    directives = _parse_directives(sql)
-    threads = int(directives.get("threads", THREADS))
+    if done_path.exists():
+        print(f"[{name}] already complete — skipping")
+        return out_path
+
+    directives   = _parse_directives(sql)
+    threads      = int(directives.get("threads", THREADS))
     memory_limit = directives.get("memory_limit", MEMORY_LIMIT)
-    spill_limit = float(directives.get("watch_spill_gb", WATCH_SPILL_GB))
-    time_limit = float(directives.get("watch_time_s", WATCH_TIME_S))
+    spill_limit  = float(directives.get("watch_spill_gb", WATCH_SPILL_GB))
 
-    # Apply per-query overrides
     if threads != THREADS:
         con.execute(f"PRAGMA threads={threads}")
     if memory_limit != MEMORY_LIMIT:
         con.execute(f"PRAGMA memory_limit='{memory_limit}'")
 
     stop = threading.Event()
-    wd   = threading.Thread(target=watchdog, args=(con, stop, name, t0, spill_limit, time_limit),
+    wd   = threading.Thread(target=watchdog, args=(con, stop, name, t0, spill_limit),
                              daemon=True)
     wd.start()
     try:
         if "{bench}" in sql:
-            frames: list[pd.DataFrame] = []
             benches = list_benches(con)
-            for i, bench in enumerate(benches, 1):
-                # `replace` instead of `format` — SQL comments may legitimately
-                # contain `{...}` text (e.g. set-builder notation in docs)
-                # that str.format would misinterpret as a placeholder.
-                bench_t0 = time.perf_counter()
-                total_elapsed = bench_t0 - t0
-                print(f"  [{name}] [{i}/{len(benches)}] starting {bench} (total elapsed: {total_elapsed:.0f}s)...",
-                      file=sys.stderr, flush=True)
-                result_df = con.execute(sql.replace("{bench}", bench)).fetchdf()
-                frames.append(result_df)
-                bench_elapsed = time.perf_counter() - bench_t0
-                spill_gb = _spill_size_gb()
-                total_elapsed = time.perf_counter() - t0
-                print(f"  [{name}] [{i}/{len(benches)}] {bench}: {len(result_df)} rows in {bench_elapsed:.1f}s (spill: {spill_gb:.1f}GB, total: {total_elapsed:.0f}s)",
-                      file=sys.stderr, flush=True)
-            df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+            # Detect completed benches from a prior partial run
+            completed: set[str] = set()
+            if out_path.exists():
+                try:
+                    prev = pd.read_csv(out_path)
+                    if "bench" in prev.columns:
+                        completed = set(prev["bench"].unique())
+                except Exception:
+                    pass
+
+            todo = [b for b in benches if b not in completed]
+            if completed:
+                print(f"[{name}] resuming: {len(completed)}/{len(benches)} benches done, "
+                      f"{len(todo)} remaining", file=sys.stderr, flush=True)
+
+            if todo:
+                write_header = not out_path.exists() or not completed
+                for bench in todo:
+                    overall_i     = benches.index(bench) + 1
+                    bench_t0      = time.perf_counter()
+                    total_elapsed = bench_t0 - t0
+                    # `replace` instead of `format` — SQL comments may legitimately
+                    # contain `{...}` text (e.g. set-builder notation in docs)
+                    # that str.format would misinterpret as a placeholder.
+                    print(f"  [{name}] [{overall_i}/{len(benches)}] starting {bench} "
+                          f"(total elapsed: {total_elapsed:.0f}s)...",
+                          file=sys.stderr, flush=True)
+                    result_df     = con.execute(sql.replace("{bench}", bench)).fetchdf()
+                    bench_elapsed = time.perf_counter() - bench_t0
+                    spill_gb      = _spill_size_gb()
+                    total_elapsed = time.perf_counter() - t0
+                    print(f"  [{name}] [{overall_i}/{len(benches)}] {bench}: "
+                          f"{len(result_df)} rows in {bench_elapsed:.1f}s "
+                          f"(spill: {spill_gb:.1f}GB, total: {total_elapsed:.0f}s)",
+                          file=sys.stderr, flush=True)
+                    result_df.to_csv(out_path,
+                                     mode='w' if write_header else 'a',
+                                     header=write_header, index=False)
+                    write_header = False
+
+            n_rows = sum(1 for _ in out_path.open()) - 1 if out_path.exists() else 0
         else:
             df = con.execute(sql).fetchdf()
+            df.to_csv(out_path, index=False)
+            n_rows = len(df)
     finally:
         stop.set()
         wd.join(timeout=WATCH_POLL_S * 2)
-        # Restore defaults
         if threads != THREADS:
             con.execute(f"PRAGMA threads={THREADS}")
         if memory_limit != MEMORY_LIMIT:
             con.execute(f"PRAGMA memory_limit='{MEMORY_LIMIT}'")
 
-    df.to_csv(out_path, index=False)
+    done_path.touch()
     elapsed = time.perf_counter() - t0
-    print(f"[{name}] {len(df)} row(s) in {elapsed:.2f}s -> {out_path}")
+    print(f"[{name}] {n_rows} row(s) in {elapsed:.2f}s -> {out_path}")
     return out_path
 
 
@@ -248,6 +272,14 @@ def main() -> int:
             return 1
 
     TMP_DIR.mkdir(parents=True, exist_ok=True)
+
+    # One-time migration: stamp result.complete for non-bench analyses that were
+    # completed before this sentinel was introduced.
+    for q in ANALYSIS_DIR.glob("[0-9][0-9]_*/query.sql"):
+        csv = q.parent / "result.csv"
+        sentinel = q.parent / "result.complete"
+        if csv.exists() and not sentinel.exists() and "{bench}" not in q.read_text():
+            sentinel.touch()
 
     con = duckdb.connect(str(DB_PATH), read_only=True)
     con.execute(f"PRAGMA memory_limit='{MEMORY_LIMIT}'")

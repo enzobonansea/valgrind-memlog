@@ -1,4 +1,5 @@
 -- @set threads 1
+-- @set memory_limit 32GB
 -- @set watch_spill_gb 200
 -- Silent stores: writes that put the same value back into the same
 -- (alloc_addr, generation, offset) location as the most recent prior write.
