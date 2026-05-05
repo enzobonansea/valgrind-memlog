@@ -150,7 +150,7 @@ def watchdog(con: duckdb.DuckDBPyConnection,
             pct_spill = 100.0 * spill_gb / spill_limit if spill_limit > 0 else 0
             print(f"  [{query_name}] {elapsed:.0f}s | spill: {spill_gb:.1f}/{spill_limit:.0f}GB ({pct_spill:.0f}%) | "
                   f"free: {free_gb:.0f}GB",
-                  file=sys.stderr, flush=True)
+                  flush=True)
             last_progress = elapsed
 
 
@@ -198,7 +198,7 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
             todo = [b for b in benches if b not in completed]
             if completed:
                 print(f"[{name}] resuming: {len(completed)}/{len(benches)} benches done, "
-                      f"{len(todo)} remaining", file=sys.stderr, flush=True)
+                      f"{len(todo)} remaining", flush=True)
 
             if todo:
                 write_header = not out_path.exists() or not completed
@@ -211,7 +211,7 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
                     # that str.format would misinterpret as a placeholder.
                     print(f"  [{name}] [{overall_i}/{len(benches)}] starting {bench} "
                           f"(total elapsed: {total_elapsed:.0f}s)...",
-                          file=sys.stderr, flush=True)
+                          flush=True)
                     result_df     = con.execute(sql.replace("{bench}", bench)).fetchdf()
                     bench_elapsed = time.perf_counter() - bench_t0
                     spill_gb      = _spill_size_gb()
@@ -219,7 +219,7 @@ def run_query(con: duckdb.DuckDBPyConnection, query_path: Path) -> Path:
                     print(f"  [{name}] [{overall_i}/{len(benches)}] {bench}: "
                           f"{len(result_df)} rows in {bench_elapsed:.1f}s "
                           f"(spill: {spill_gb:.1f}GB, total: {total_elapsed:.0f}s)",
-                          file=sys.stderr, flush=True)
+                          flush=True)
                     result_df.to_csv(out_path,
                                      mode='w' if write_header else 'a',
                                      header=write_header, index=False)

@@ -1,4 +1,5 @@
 -- @set threads 1
+-- @set watch_spill_gb 200
 -- Bit-pattern statistics per benchmark / alloc_type.
 --   zero_values    : value is exactly 0
 --   exp_zero       : IEEE-754 biased exponent is 0 (the value is zero or a
