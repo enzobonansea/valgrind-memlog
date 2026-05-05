@@ -1,0 +1,1 @@
+[20_spatial_delta] FAILED: Out of Range Error: Overflow in addition of UINT64 (18446744073709551615 + 1)!

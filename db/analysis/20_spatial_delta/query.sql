@@ -57,7 +57,7 @@ SELECT
             WHEN value = prev_value THEN 0
             ELSE CEIL(LOG2((CASE WHEN value > prev_value
                                  THEN value - prev_value
-                                 ELSE prev_value - value END) + 1))
+                                 ELSE prev_value - value END)::DOUBLE + 1))
         END
     ) FILTER (WHERE prev_value IS NOT NULL)                     AS mean_log_delta
 FROM adj
