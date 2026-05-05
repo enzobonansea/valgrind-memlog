@@ -33,7 +33,7 @@ WITH snapshot AS (
 ),
 per_line AS (
     SELECT alloc_type, alloc_addr, generation,
-        "offset" / 64                                  AS line_id,
+        "offset" // 64                                  AS line_id,
         COUNT(*)                                       AS slots,
         COUNT(DISTINCT value >> 32)                    AS distinct_high32,
         COUNT(DISTINCT value >> 48)                    AS distinct_high16,
@@ -45,7 +45,7 @@ per_line AS (
             END
         )                                              AS distinct_exp
     FROM snapshot
-    GROUP BY alloc_type, alloc_addr, generation, "offset" / 64
+    GROUP BY alloc_type, alloc_addr, generation, "offset" // 64
 )
 SELECT
     '{bench}' AS bench,

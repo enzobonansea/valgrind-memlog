@@ -1,4 +1,5 @@
 -- @set threads 2
+-- @set memory_limit 32GB
 -- Per-offset exponent stability across stores (decides per-tensor vs.
 -- per-channel vs. per-token scaling for FP8 / MXFP4). For each
 -- (alloc_site, offset) we look at the IEEE-754 exponent of every store
@@ -20,12 +21,17 @@
 -- Dettmers 2023 NeurIPS (NF4 / per-block scale); Darvish-Rouhani 2020
 -- NeurIPS (HFP8).
 --
--- Per-bench iteration so the per-(stack, addr, gen, offset) hash agg —
--- the highest-cardinality grouping in the suite — stays bounded by one
--- bench at a time. Quantiles use APPROX_QUANTILE (t-digest, bounded
--- state) instead of QUANTILE_CONT.
+-- Per-bench iteration so the per-(addr, gen, offset) hash agg — the
+-- highest-cardinality grouping in the suite — stays bounded by one
+-- bench at a time. Earlier shape kept ANY_VALUE(alloc_stack) inside
+-- per_offset, which on cam4 (~600M unique offsets) made the per-group
+-- state ~one full stack-trace string and OOM'd. We now do the
+-- per-offset aggregate without alloc_stack, then JOIN a tiny
+-- (alloc_addr, generation) → alloc_stack lookup before the per-stack
+-- roll-up. Quantiles use APPROX_QUANTILE (t-digest, bounded state)
+-- instead of QUANTILE_CONT.
 WITH ex AS (
-    SELECT alloc_stack, alloc_type, alloc_addr, generation, "offset",
+    SELECT alloc_type, alloc_addr, generation, "offset",
         CASE alloc_type
             WHEN '64bits' THEN ((value >> 52) & 2047)::INT - 1023
             WHEN '32bits' THEN ((value >> 23) & 255)::INT  - 127
@@ -38,7 +44,7 @@ WITH ex AS (
     WHERE alloc_type IN ('32bits', '64bits') AND value <> 0
 ),
 per_offset AS (
-    SELECT ANY_VALUE(alloc_stack) AS alloc_stack, alloc_type, alloc_addr, generation, "offset",
+    SELECT alloc_type, alloc_addr, generation, "offset",
         MAX(unbiased_exp) - MIN(unbiased_exp) AS exp_range,
         COUNT(*) AS n
     FROM ex
@@ -47,15 +53,21 @@ per_offset AS (
     GROUP BY alloc_type, alloc_addr, generation, "offset"
     HAVING COUNT(*) >= 2
 ),
+addr_stack AS (
+    SELECT alloc_addr, generation, any_value(alloc_stack) AS alloc_stack
+    FROM {bench}
+    GROUP BY alloc_addr, generation
+),
 per_stack AS (
-    SELECT alloc_stack, alloc_type,
+    SELECT s.alloc_stack, p.alloc_type,
         COUNT(*)::BIGINT                                      AS distinct_offsets,
-        SUM(exp_range = 0)::DOUBLE / COUNT(*)                 AS frac_constant_exp,
-        AVG(exp_range)                                        AS mean_exp_range,
-        APPROX_QUANTILE(exp_range, 0.5)                       AS median_exp_range,
-        APPROX_QUANTILE(exp_range, 0.95)                      AS p95_exp_range
-    FROM per_offset
-    GROUP BY alloc_stack, alloc_type
+        SUM(p.exp_range = 0)::DOUBLE / COUNT(*)               AS frac_constant_exp,
+        AVG(p.exp_range)                                      AS mean_exp_range,
+        APPROX_QUANTILE(p.exp_range, 0.5)                     AS median_exp_range,
+        APPROX_QUANTILE(p.exp_range, 0.95)                    AS p95_exp_range
+    FROM per_offset p
+    JOIN addr_stack s USING (alloc_addr, generation)
+    GROUP BY s.alloc_stack, p.alloc_type
 ),
 sited AS (
     SELECT *,

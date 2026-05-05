@@ -1,4 +1,5 @@
 -- @set threads 1
+-- @set memory_limit 32GB
 -- Frequent-value coverage per (bench, alloc_type) — direct measurement of
 -- the assumption behind frequent-value compression [Yang 2000] and value
 -- locality work [Lipasti 1996]. For each (bench, alloc_type) we count

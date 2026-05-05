@@ -1,4 +1,5 @@
 -- @set threads 2
+-- @set memory_limit 32GB
 -- @set watch_spill_gb 130
 -- BDI (Base+Delta) cache-line compressibility per (bench, alloc_type).
 -- BDI [Pekhimenko 2012] partitions a 64-byte cache line into elements,
@@ -29,11 +30,11 @@ WITH snapshot AS (
 ),
 per_line AS (
     SELECT alloc_type, alloc_addr, generation,
-        "offset" / 64                  AS line_id,
+        "offset" // 64                  AS line_id,
         COUNT(*)                       AS slots,
         MAX(value) - MIN(value)        AS rng
     FROM snapshot
-    GROUP BY alloc_type, alloc_addr, generation, "offset" / 64
+    GROUP BY alloc_type, alloc_addr, generation, "offset" // 64
 )
 SELECT
     '{bench}' AS bench,

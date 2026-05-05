@@ -1,4 +1,6 @@
 -- @set threads 2
+-- @set memory_limit 32GB
+-- @set watch_spill_gb 250
 -- Outlier-channel concentration per allocation site (SmoothQuant / AWQ /
 -- QuIP-style analysis). LLM-quantization papers show that quantization
 -- error is dominated by a small set of outlier "channels" — fixed
