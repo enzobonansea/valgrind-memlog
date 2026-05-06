@@ -1,61 +1,83 @@
 #!/usr/bin/env python3
 """Silent-store fraction per (bench, alloc_type).
 
-Heatmap: rows are benches, columns are alloc_type (32bits / 64bits /
-object). Cell color = fraction of stores whose value matches the most
-recent prior write to the same (alloc_addr, generation, offset) — the
-upper bound on what silent-store elimination could remove. Cells are
-annotated with the percentage; missing (bench, alloc_type) combos are
-left blank.
+Three side-by-side panels (32bits / 64bits / object). Per panel, one
+horizontal bar per bench showing `silent_frac` — the fraction of stores
+whose value matches the most recent prior write to the same
+(alloc_addr, generation, offset). The right margin annotates the raw
+counts (silent / stores_with_prev). Pairs with no prior-store traffic
+are left blank.
 """
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.colors import LinearSegmentedColormap
 
 HERE = Path(__file__).resolve().parent
 OUT  = HERE / "figure.svg"
 
 ALLOC_TYPES = ["32bits", "64bits", "object"]
+# Wong-palette colour per panel.
+COLORS = {"32bits": "#0072B2", "64bits": "#56B4E9", "object": "#009E73"}
+
+
+def _fmt_count(n: int) -> str:
+    if n >= 1_000_000_000:
+        return f"{n/1e9:.1f}B"
+    if n >= 1_000_000:
+        return f"{n/1e6:.1f}M"
+    if n >= 1_000:
+        return f"{n/1e3:.1f}k"
+    return str(int(n))
 
 
 def main() -> None:
     df = pd.read_csv(HERE / "result.csv")
-    M = (df.pivot(index="bench", columns="alloc_type", values="silent_frac")
-           .reindex(columns=ALLOC_TYPES)
-           .sort_index())
-    arr = M.to_numpy(dtype=float)
+    benches = sorted(df["bench"].unique())
 
-    fig, ax = plt.subplots(figsize=(4.6, max(4.0, 0.22 * len(M) + 1.5)))
-    cmap = LinearSegmentedColormap.from_list(
-        "soft_rdylgn", ["#f4a582", "#ffffbf", "#91cf60"]
+    fig, axes = plt.subplots(
+        1, 3, figsize=(12.0, 6.0), sharey=True,
+        gridspec_kw={"wspace": 0.55},
     )
-    im = ax.imshow(arr, aspect="auto", cmap=cmap, vmin=0, vmax=1)
 
-    ax.set_xticks(range(len(ALLOC_TYPES)))
-    ax.set_xticklabels(ALLOC_TYPES, rotation=30, ha="right", fontsize=9)
-    ax.set_yticks(range(len(M)))
-    ax.set_yticklabels(M.index.tolist(), fontsize=8)
+    y = np.arange(len(benches))
 
-    for i in range(arr.shape[0]):
-        for j in range(arr.shape[1]):
-            v = arr[i, j]
-            if np.isnan(v):
-                continue
-            ax.text(j, i, f"{v*100:.0f}", ha="center", va="center",
-                    fontsize=7, color="black")
+    for ax, atype in zip(axes, ALLOC_TYPES):
+        sub = (df[df.alloc_type == atype]
+               .set_index("bench")
+               .reindex(benches))
+        frac = sub["silent_frac"].to_numpy(dtype=float)
 
-    cbar = fig.colorbar(im, ax=ax, fraction=0.045, pad=0.04)
-    cbar.set_label("% silent stores", fontsize=9)
-    cbar.set_ticks(np.linspace(0, 1, 6))
-    cbar.set_ticklabels([f"{int(t*100)}" for t in np.linspace(0, 1, 6)])
-    cbar.ax.tick_params(labelsize=8)
-    for spine in ("top", "right"):
-        ax.spines[spine].set_visible(False)
+        ax.barh(y, frac, height=0.65, color=COLORS[atype],
+                edgecolor="white", linewidth=0.4, alpha=0.95)
 
-    fig.tight_layout()
+        ax.set_yticks(y)
+        ax.set_yticklabels(benches, fontsize=7)
+        ax.invert_yaxis()
+        ax.set_xlim(0, 1.0)
+        ax.set_xlabel("silent-store fraction", fontsize=9)
+        ax.tick_params(axis="x", labelsize=8)
+        ax.set_title(atype, fontsize=10)
+        ax.grid(axis="x", linestyle=":", alpha=0.4)
+        ax.set_axisbelow(True)
+        for spine in ("top", "right"):
+            ax.spines[spine].set_visible(False)
+
+        # Right-margin count annotation per row.
+        for i, bench in enumerate(benches):
+            n_prev = sub.at[bench, "stores_with_prev"]
+            n_sil  = sub.at[bench, "silent"]
+            if pd.isna(n_prev) or n_prev == 0:
+                txt = "—"
+            else:
+                txt = f"{_fmt_count(n_sil)}/{_fmt_count(n_prev)}"
+            ax.text(1.02, i, txt, ha="left", va="center",
+                    fontsize=6.5, color="#444",
+                    family="monospace",
+                    transform=ax.get_yaxis_transform())
+
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
     fig.savefig(OUT, format="svg")
     print(f"wrote {OUT}")
 

@@ -28,10 +28,12 @@ object) traffic appear as zero-row pairs.
 
 ## figure.svg
 
-Heatmap, rows = bench, columns = alloc_type, cell colour = `silent_frac`
-on a `[0, 1]` `soft_rdylgn` ramp (orange → yellow → green). Each cell
-is annotated with the integer percentage; missing `(bench, alloc_type)`
-combinations are left blank. The colourbar is labelled "% silent stores".
+Three side-by-side panels (`32bits` / `64bits` / `object`) in matching
+Wong-palette colours. Per panel, one horizontal bar per bench showing
+`silent_frac` ∈ `[0, 1]`. The right margin annotates the raw counts
+(`silent / stores_with_prev`); pairs with no prior-store traffic are
+left blank ("—"). Same panelled layout as Q10 so the two figures sit
+together stylistically.
 
 ## Headline observations
 
