@@ -11,21 +11,25 @@
 -- everywhere (no ⇒ per-tensor scaling forced).
 --
 -- For each (bench, alloc_site, alloc_type):
---   p99 / p999          IEEE-754-magnitude thresholds (sign bit masked off
---                       so the unsigned value comparison ranks magnitudes)
---   n_outlier_99/.999   stores above that magnitude
---   distinct_offsets    distinct offsets touched by the site
---   outlier_offsets     distinct offsets that ever carry a 99.9% outlier
---   channel_frac        outlier_offsets / distinct_offsets
---                       small ⇒ outliers concentrate ⇒ per-channel scaling wins
+--   p999               IEEE-754-magnitude threshold (sign bit masked off
+--                      so the unsigned value comparison ranks magnitudes)
+--   n_outlier_999      stores above that magnitude
+--   distinct_offsets   distinct offsets touched by the site
+--   outlier_offsets    distinct offsets that ever carry a 99.9% outlier
+--   channel_frac       outlier_offsets / distinct_offsets
+--                      small ⇒ outliers concentrate ⇒ per-channel scaling wins
 --
 -- Citations: Xiao 2023 ICML (SmoothQuant); Lin 2024 MLSys (AWQ);
 -- Dettmers 2022 NeurIPS (LLM.int8()); Tseng 2024 NeurIPS (QuIP#).
 --
 -- Per-bench iteration so per-stack hash agg is bounded by one bench's
--- stack dictionary.  Quantiles use APPROX_QUANTILE (t-digest, bounded
+-- stack dictionary. Quantiles use APPROX_QUANTILE (t-digest, bounded
 -- state) instead of QUANTILE_CONT (which materialises full per-group
--- value lists).
+-- value lists). Pre-aggregation per (stack, offset) right after the
+-- threshold join collapses billions of per-store rows down to a few
+-- million (stack × offset) groups before the per-stack rollup; without
+-- it, cam4-class benches spilled >200GB materialising the per-store
+-- flagged stream.
 WITH abs_vals AS (
     SELECT
         alloc_stack, alloc_type, "offset",
@@ -38,26 +42,25 @@ WITH abs_vals AS (
 ),
 thresh AS (
     SELECT alloc_stack, alloc_type,
-        APPROX_QUANTILE(abs_bits, 0.99)  AS p99,
         APPROX_QUANTILE(abs_bits, 0.999) AS p999
     FROM abs_vals
     GROUP BY alloc_stack, alloc_type
 ),
-flagged AS (
+per_offset AS (
     SELECT av.alloc_stack, av.alloc_type, av."offset",
-        (av.abs_bits >= t.p99)  AS o99,
-        (av.abs_bits >= t.p999) AS o999
+        COUNT(*)::BIGINT                              AS n_total,
+        SUM((av.abs_bits >= t.p999)::INT)::BIGINT     AS n_outlier
     FROM abs_vals av
     JOIN thresh t USING (alloc_stack, alloc_type)
+    GROUP BY av.alloc_stack, av.alloc_type, av."offset"
 ),
 per_stack AS (
     SELECT alloc_stack, alloc_type,
-        COUNT(*)::BIGINT                                        AS total,
-        SUM(o99::INT)::BIGINT                                   AS n_outlier_99,
-        SUM(o999::INT)::BIGINT                                  AS n_outlier_999,
-        APPROX_COUNT_DISTINCT("offset")::BIGINT                        AS distinct_offsets,
-        APPROX_COUNT_DISTINCT(CASE WHEN o999 THEN "offset" END)::BIGINT AS outlier_offsets
-    FROM flagged
+        SUM(n_total)::BIGINT                          AS total,
+        SUM(n_outlier)::BIGINT                        AS n_outlier_999,
+        COUNT(*)::BIGINT                              AS distinct_offsets,
+        COUNT(*) FILTER (WHERE n_outlier > 0)::BIGINT AS outlier_offsets
+    FROM per_offset
     GROUP BY alloc_stack, alloc_type
 ),
 sited AS (

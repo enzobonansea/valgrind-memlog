@@ -1,4 +1,4 @@
--- @set threads 2
+-- @set threads 1
 -- @set watch_spill_gb 130
 -- Compressed-cache-line homogeneity per (bench, alloc_type). For each
 -- 64-byte aligned window in the last-write snapshot of each buffer we
@@ -24,6 +24,10 @@
 -- Snapshot extraction uses arg_max(value, rn) (rn = parquet file_row_number
 -- from the view) instead of the earlier ROW_NUMBER OVER () + QUALIFY
 -- pattern, whose global window forced a spill-heavy materialise.
+-- "Homogeneous" is encoded as MIN(x) = MAX(x) instead of
+-- COUNT(DISTINCT x) = 1: the former keeps O(1) state per group, the
+-- latter a hash set per group, which OOM'd the 16GB buffer pool on
+-- bwaves (millions of lines × 4 distinct-set columns).
 WITH snapshot AS (
     SELECT alloc_type, alloc_addr, generation, "offset",
         arg_max(value, rn) AS value
@@ -33,34 +37,36 @@ WITH snapshot AS (
 ),
 per_line AS (
     SELECT alloc_type, alloc_addr, generation,
-        "offset" // 64                                  AS line_id,
-        COUNT(*)                                       AS slots,
-        COUNT(DISTINCT value >> 32)                    AS distinct_high32,
-        COUNT(DISTINCT value >> 48)                    AS distinct_high16,
-        COUNT(DISTINCT value >> 56)                    AS distinct_high8,
-        COUNT(DISTINCT
-            CASE alloc_type
+        "offset" // 64                                             AS line_id,
+        COUNT(*)                                                   AS slots,
+        MIN(value >> 32) = MAX(value >> 32)                        AS homog_high32,
+        MIN(value >> 48) = MAX(value >> 48)                        AS homog_high16,
+        MIN(value >> 56) = MAX(value >> 56)                        AS homog_high8,
+        MIN(CASE alloc_type
                 WHEN '64bits' THEN ((value >> 52) & 2047)
                 WHEN '32bits' THEN ((value >> 23) & 255)
-            END
-        )                                              AS distinct_exp
+            END) =
+        MAX(CASE alloc_type
+                WHEN '64bits' THEN ((value >> 52) & 2047)
+                WHEN '32bits' THEN ((value >> 23) & 255)
+            END)                                                   AS homog_exp
     FROM snapshot
     GROUP BY alloc_type, alloc_addr, generation, "offset" // 64
 )
 SELECT
     '{bench}' AS bench,
     alloc_type,
-    COUNT(*) FILTER (WHERE slots >= 2)::BIGINT                  AS lines,
-    SUM(slots = 1)::BIGINT                                      AS trivial_lines,
-    AVG(slots)                                                  AS mean_slots_per_line,
-    SUM(slots >= 2 AND distinct_high32 = 1)::DOUBLE
-        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)         AS frac_homog_high32,
-    SUM(slots >= 2 AND distinct_high16 = 1)::DOUBLE
-        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)         AS frac_homog_high16,
-    SUM(slots >= 2 AND distinct_high8 = 1)::DOUBLE
-        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)         AS frac_homog_high8,
-    SUM(slots >= 2 AND distinct_exp = 1)::DOUBLE
-        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)         AS frac_homog_exp
+    COUNT(*) FILTER (WHERE slots >= 2)::BIGINT                     AS lines,
+    SUM((slots = 1)::INT)::BIGINT                                  AS trivial_lines,
+    AVG(slots)                                                     AS mean_slots_per_line,
+    SUM((slots >= 2 AND homog_high32)::INT)::DOUBLE
+        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)            AS frac_homog_high32,
+    SUM((slots >= 2 AND homog_high16)::INT)::DOUBLE
+        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)            AS frac_homog_high16,
+    SUM((slots >= 2 AND homog_high8)::INT)::DOUBLE
+        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)            AS frac_homog_high8,
+    SUM((slots >= 2 AND homog_exp)::INT)::DOUBLE
+        / NULLIF(COUNT(*) FILTER (WHERE slots >= 2), 0)            AS frac_homog_exp
 FROM per_line
 GROUP BY alloc_type
 ORDER BY alloc_type;
