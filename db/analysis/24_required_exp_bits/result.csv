@@ -1,0 +1,144 @@
+bench,alloc_type,site,min_e,max_e,exp_range,required_e_bits,total
+blender,32bits,render_result_new,-29,0,30,5,5961826
+blender,32bits,zbuffer_solid,-111,125,237,8,4585090
+blender,32bits,do_display_buffer_apply_thread,-29,-1,29,5,2589889
+blender,64bits,IMB_colormanagement_imbuf_for_write,-234,-7,228,8,2072541
+blender,32bits,zbufshadeDA_tile,-111,125,237,8,1528074
+blender,32bits,render_layer_add_pass,3,36,34,6,1431139
+blender,64bits,render_result_new,-234,-7,228,8,1036271
+blender,64bits,DNA_sdna_from_data,-1022,936,1959,11,30648
+blender,64bits,add_memfilechunk,-1022,1023,2046,11,14966
+blender,64bits,read_struct,-623,1023,1647,11,12276
+blender,64bits,get_bhead,-1020,1023,2044,11,1535
+blender,64bits,gz_look,-298,743,1042,11,1018
+bwaves,64bits,shell_,-437,11,449,9,532268283
+bwaves,64bits,bi_cgstab_block_,-223,-3,221,8,163176147
+bwaves,64bits,flux_,-220,0,221,8,11508754
+bwaves,32bits,MAIN__,-118,-118,1,1,1610
+cactus,64bits,PUGH_EnableGArrayDataStorage,-108,4,113,7,210474687
+cam4,64bits,cd_core_,-153,21,175,8,218939651
+cam4,64bits,__dyn_comp_MOD_dyn_run,-502,19,522,10,202021643
+cam4,64bits,__sw_core_MOD_c_sw,-63,14,78,7,171551518
+cam4,64bits,__tp_core_MOD_tp2d,-507,13,521,10,122259214
+cam4,64bits,__sw_core_MOD_d_sw,-46,15,62,6,106429086
+cam4,64bits,__phys_buffer_MOD_pbuf_allocate,-502,1023,1526,11,105376146
+cam4,64bits,__dyn_comp_MOD_dyn_init,-502,1023,1526,11,96882763
+cam4,32bits,__physics_types_MOD_physics_type_alloc,-126,127,254,8,88412378
+cam4,64bits,__tp_core_MOD_fyppm,-476,13,490,9,86823896
+cam4,64bits,__mapz_module_MOD_ppm2m,-461,22,484,9,59109893
+cam4,64bits,__mapz_module_MOD_map1_ppm,-31,35,67,7,48646243
+cam4,64bits,__tp_core_MOD_ytp,-433,7,441,9,43776286
+cam4,64bits,__radae_MOD_initialize_radbuffer,-8,1023,1032,11,23777280
+cam4,64bits,__mapz_module_MOD_mapn_ppm_tracer,-472,13,486,9,23140325
+cam4,64bits,trac2d_,-502,13,516,10,23040605
+cam4,64bits,te_map_,-42,31,74,7,21591624
+cam4,64bits,__tp_core_MOD_tpcc,-47,-12,36,6,21510166
+cam4,64bits,__cam_diagnostics_MOD_diag_allocate,-483,1023,1507,11,11647499
+cam4,64bits,__physics_types_MOD_physics_type_alloc,-130,1023,1154,11,11268524
+cam4,64bits,__tracer_data_MOD_trcdata_init,-120,16,137,8,10329984
+exchange2,32bits,MAIN__,-118,-118,1,1,4016
+fotonik,64bits,__upml_mod_MOD_upml_init,-209,36,246,8,1572772
+fotonik,64bits,MAIN__,-189,-42,148,8,484234
+fotonik,32bits,__readline_mod_MOD_readline,-118,-105,14,4,130158
+fotonik,64bits,__plane_source_mod_MOD_plane_source_init,-77,4,82,7,29282
+fotonik,32bits,__power_mod_MOD_power_print,-111,-105,7,3,9421
+fotonik,64bits,__power_mod_MOD_power_init,-6,1,8,3,8127
+gcc,32bits,pool_alloc,-118,-118,1,1,1003
+lbm,64bits,LBM_allocateGrid,-6,-2,5,3,553520048
+leela,32bits,"std::vector<TTEntry, std::allocator<TTEntry> >::_M_fill_insert(__gnu_cxx::__normal_iterator<TTEntry*, std::vector<TTEntry, std::allocator<TTEntry> > >, unsigned long, TTEntry const&)",-126,127,254,8,440674
+mcf,32bits,read_min,-126,127,254,8,9950457
+namd,64bits,"Patch::readfile(_IO_FILE*, Molecule*)",-29,16,46,6,480840678
+namd,64bits,ComputeNonbondedUtil::calc_self_energy(nonbonded*),-29,16,46,6,440782456
+namd,64bits,ComputeNonbondedUtil::calc_self_energy_fullelect(nonbonded*),-34,16,51,6,168692856
+namd,32bits,"ComputeList::readfile(_IO_FILE*, PatchList*)",-118,-97,22,5,12354469
+namd,64bits,ResultSet::ResultSet(int),-21,16,38,6,6086580
+namd,32bits,Molecule::readfile(_IO_FILE*),-118,-117,2,1,368884
+namd,64bits,"ComputeNonbondedUtil::select(SimParameters*, Molecule*, LJTable*)",-68,72,141,8,47023
+namd,64bits,LJTable::readfile(_IO_FILE*),-19,24,44,6,27888
+namd,64bits,ComputeNonbondedUtil::calc_pair_energy(nonbonded*),-1022,-985,38,6,2188
+parest,64bits,"dealii::TableBase<2, double>::TableBase(dealii::TableIndices<2> const&)",-31,0,32,5,7733352
+parest,64bits,"dealii::Vector<double>::reinit(unsigned int, bool)",-198,-1,198,8,4891312
+parest,64bits,dealii::SparseMatrix<double>::reinit(dealii::SparsityPattern const&),-18,-1,18,5,753472
+parest,64bits,void METomography::Slave::internal::SparseDirectSPEC::solve<double>(dealii::Vector<double>&) const,-144,-54,91,7,559600
+parest,64bits,"dealii::Vector<double>::Vector<dealii::internal::BlockVectorIterators::Iterator<dealii::BlockVectorBase<dealii::Vector<double> >, true> >(dealii::internal::BlockVectorIterators::Iterator<dealii::BlockVectorBase<dealii::Vector<double> >, true>, dealii::internal::BlockVectorIterators::Iterator<dealii::BlockVectorBase<dealii::Vector<double> >, true>)",-48,-1,48,6,9898
+parest,64bits,"void dealii::SolverGMRES<dealii::Vector<double> >::solve<dealii::SparseMatrix<double>, dealii::SparseILU<double> >(dealii::SparseMatrix<double> const&, dealii::Vector<double>&, dealii::Vector<double> const&, dealii::SparseILU<double> const&)",-22,0,23,5,8567
+parest,64bits,"std::vector<dealii::Point<3>, std::allocator<dealii::Point<3> > >::reserve(unsigned long)",-3,0,4,2,4440
+parest,64bits,"dealii::Quadrature<3>::Quadrature(std::vector<dealii::Point<3>, std::allocator<dealii::Point<3> > > const&, std::vector<double, std::allocator<double> > const&)",-3,0,4,2,4440
+parest,64bits,"std::vector<dealii::Tensor<1, 3>, std::allocator<dealii::Tensor<1, 3> > >::_M_fill_insert(__gnu_cxx::__normal_iterator<dealii::Tensor<1, 3>*, std::vector<dealii::Tensor<1, 3>, std::allocator<dealii::Tensor<1, 3> > > >, unsigned long, dealii::Tensor<1, 3> const&)",-5,-1,5,3,3616
+parest,64bits,"std::vector<double, std::allocator<double> >::reserve(unsigned long)",-6,-4,3,2,1200
+perlbench,32bits,Perl_savestack_grow,-126,-118,9,4,9647864
+perlbench,32bits,Perl_yyparse,-118,-118,1,1,67543
+pop2,64bits,__m_attrvect_MOD_init_,-71,99,171,8,78073298
+pop2,32bits,__m_attrvect_MOD_init_,-126,127,254,8,11635033
+pop2,64bits,__hmix_gm_MOD_init_gm,-863,920,1784,11,10741286
+pop2,64bits,__shr_map_mod_MOD_shr_map_mapset_global,-51,8,60,6,6452764
+pop2,32bits,__m_permuter_MOD_permutei_,-126,127,254,8,5888327
+pop2,64bits,ncio_open,-1022,1023,2046,11,5445236
+pop2,64bits,__m_permuter_MOD_permuted_,-60,9,70,7,5117555
+pop2,64bits,__io_binary_MOD_read_real8_3d,-1022,1023,2046,11,3825896
+pop2,64bits,__hmix_aniso_MOD_init_aniso,-863,920,1784,11,3564336
+pop2,64bits,__shr_ncread_mod_MOD_shr_ncread_domain,-22,8,31,5,3561150
+pop2,64bits,__vmix_kpp_MOD_init_vmix_kpp,-863,920,1784,11,3057485
+pop2,64bits,__initial_MOD_init_ts,-22,6,29,5,2954880
+pop2,64bits,__tidal_mixing_MOD_init_tidal_mixing,-863,920,1784,11,2507622
+pop2,64bits,__shr_dmodel_mod_MOD_shr_dmodel_mapset_global,-51,8,60,6,2461822
+pop2,64bits,__shr_dmodel_mod_MOD_shr_dmodel_readgrid,-22,8,31,5,1825201
+pop2,64bits,__shr_mct_mod_MOD_shr_mct_smatreaddnc,-60,9,70,7,1727125
+pop2,64bits,__alloc_mod_MOD_alloc_check_1d_double,-27,99,127,7,1100840
+pop2,64bits,__shr_mem_mod_MOD_shr_mem_init,0,0,1,1,1048576
+pop2,64bits,__forcing_sfwf_MOD_init_sfwf,-863,920,1784,11,1039098
+pop2,64bits,__seq_flux_mct_MOD_seq_flux_init_mct,-31,99,131,8,841063
+povray,64bits,pov::open_istack(),-56,503,560,10,20213461
+povray,64bits,pov::Create_Priority_Queue(unsigned int),-54,23,78,7,12060239
+povray,32bits,pov::NewComTexData(),-126,127,254,8,512323
+povray,64bits,pov::Initialize_Radiosity_Code(),-8,0,9,4,9606
+povray,32bits,pov::Create_BMap_Entries(int),-118,0,119,7,4804
+povray,64bits,pov::POVFPU_AddFunction(pov::FunctionCode*),-511,769,1281,11,1068
+povray,64bits,pov::Initialize_Noise(),-53,0,54,6,1000
+roms,64bits,__step2d_mod_MOD_step2d_tile,-109,25,135,8,351624766
+roms,64bits,__mod_ocean_MOD_allocate_ocean,-88,20,109,7,230655172
+roms,64bits,__step3d_uv_mod_MOD_step3d_uv_tile,-92,27,120,7,152705608
+roms,64bits,__step3d_t_mod_MOD_step3d_t,-82,20,103,7,120648604
+roms,64bits,__lmd_skpp_mod_MOD_lmd_skpp,-253,11,265,9,72991613
+roms,64bits,__rho_eos_mod_MOD_rho_eos_tile,-20,38,59,6,71672832
+roms,64bits,__pre_step3d_mod_MOD_pre_step3d,-271,20,292,9,68985832
+roms,64bits,__mod_coupling_MOD_allocate_coupling,-64,28,93,7,66573232
+roms,64bits,__mod_grid_MOD_allocate_grid,-48,30,79,7,58949006
+roms,64bits,__rhs3d_mod_MOD_rhs3d,-100,17,118,7,54695421
+roms,64bits,__mod_mixing_MOD_allocate_mixing,-48,12,61,6,52442432
+roms,64bits,__t3dmix_mod_MOD_t3dmix2,-140,15,156,8,47455335
+roms,64bits,__lmd_vmix_mod_MOD_lmd_vmix,-93,27,121,7,42411768
+roms,64bits,__prsgrd_mod_MOD_prsgrd,-50,10,61,6,38725874
+roms,64bits,__wvelocity_mod_MOD_wvelocity,-125,2,128,7,19126189
+roms,64bits,__uv3dmix_mod_MOD_uv3dmix2,-17,27,45,6,16223040
+roms,64bits,__diag_mod_MOD_diag_tile,-92,61,154,8,11567104
+roms,64bits,__ini_fields_mod_MOD_ini_fields_tile,2,11,10,4,3932160
+roms,64bits,__mod_forces_MOD_allocate_forces,-82,10,93,7,2425327
+roms,64bits,__bulk_flux_mod_MOD_bulk_flux_tile,-29,21,51,6,1428728
+wrf,32bits,__module_alloc_space_0_MOD_alloc_space_field_core_0,-126,30,157,8,1058540811
+wrf,32bits,solve_em_,-126,19,146,8,547676516
+wrf,32bits,__module_mp_wsm5_MOD_wsm52d,-126,29,156,8,190979921
+wrf,32bits,__module_bl_ysu_MOD_ysu2d,-126,99,226,8,187119308
+wrf,32bits,__module_small_step_em_MOD_advance_uv,-28,9,38,6,121961700
+wrf,32bits,__module_alloc_space_2_MOD_alloc_space_field_core_2,-126,86,213,8,119842405
+wrf,32bits,__module_advect_em_MOD_advect_scalar,-126,29,156,8,92744203
+wrf,32bits,__module_small_step_em_MOD_advance_w,-26,23,50,6,92531450
+wrf,32bits,__module_diffusion_em_MOD_cal_deform_and_div,-78,6,85,7,81041059
+wrf,32bits,__module_advect_em_MOD_advect_scalar_pd,-126,14,141,8,72727569
+wrf,32bits,__module_ra_rrtm_MOD_rrtm,-40,74,115,7,48123060
+wrf,32bits,__module_em_MOD_rk_update_scalar,-126,-1,126,7,46027393
+wrf,32bits,__module_small_step_em_MOD_advance_mu_t,-36,5,42,6,45833050
+wrf,32bits,__module_ra_rrtm_MOD_rtrn,-30,0,31,5,43798306
+wrf,32bits,__module_alloc_space_1_MOD_alloc_space_field_core_1,-126,11,138,8,32323452
+wrf,32bits,__module_advect_em_MOD_advect_w,-60,20,81,7,31532617
+wrf,32bits,__module_advect_em_MOD_advect_u,-29,28,58,6,31074840
+wrf,32bits,__module_advect_em_MOD_advect_v,-27,28,56,6,31044420
+wrf,32bits,__module_mp_wsm5_MOD_wsm5,-126,8,135,8,27376391
+wrf,32bits,__module_big_step_utilities_em_MOD_horizontal_pressure_gradient,-2,11,14,4,20963610
+x264,32bits,x264_frame_new,-126,127,254,8,34841056
+x264,32bits,x264_macroblock_cache_allocate,-126,127,254,8,1850174
+x264,32bits,x264_cqm_init,-118,-118,1,1,6658
+x264,32bits,x264_frame_pop_blank_unused,-118,4,123,7,4273
+xz,64bits,sha_process,-1022,1023,2046,11,21006816
+xz,64bits,spec_mem_init,-1022,1023,2046,11,17710505
+xz,64bits,lzma_alloc,-1022,1023,2046,11,2179825

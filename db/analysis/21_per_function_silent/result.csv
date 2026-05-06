@@ -1,0 +1,188 @@
+bench,site,stores,pairs,silent,silent_frac
+blender,render_result_new,7587314,4200298,2357811,0.5613437427534903
+blender,zbufshadeDA_tile,4123532,2291706,1802404,0.7864900646068911
+blender,_IO_file_doallocate,2082652,2078421,1861884,0.8958165838393665
+blender,zbuffer_solid,12165315,1587525,529175,0.3333333333333333
+blender,do_display_buffer_apply_thread,2592009,1036800,530,0.0005111882716049383
+blender,IMB_colormanagement_imbuf_for_write,2073601,1036800,1060,0.0010223765432098766
+blender,addpsmain,968821,477514,0,0.0
+blender,render_layer_add_pass,1431139,325083,0,0.0
+blender,bgnwrite,65362,26208,13796,0.5264041514041514
+blender,BLI_mempool_create,41670,23238,0,0.0
+blender,oldnewmap_new,9079,8125,634,0.07803076923076924
+bwaves,shell_,1006569992,957841956,509272635,0.53168754178064
+bwaves,bi_cgstab_block_,284919476,253782548,78269323,0.30841097473731727
+bwaves,flux_,14991600,7495800,4673805,0.623523172976867
+bwaves,MAIN__,8410,5355,3340,0.6237161531279178
+cactus,PUGH_EnableGArrayDataStorage,312498000,299680776,99473719,0.33193226581874574
+cactus,_IO_file_doallocate,38636,3179,607,0.19094054734193142
+cam4,cd_core_,228955584,219664608,5122742,0.023320743594707802
+cam4,__dyn_comp_MOD_dyn_run,214113888,177091056,15703976,0.0886774089821905
+cam4,__phys_buffer_MOD_pbuf_allocate,163698875,124259003,53949944,0.43417332102688766
+cam4,__physics_types_MOD_physics_type_alloc,112450347,102424491,35034519,0.3420521660195509
+cam4,__sw_core_MOD_c_sw,171904702,101182174,1792128,0.017711894587281746
+cam4,__dyn_comp_MOD_dyn_init,98796960,93336480,2373033,0.02542449640269271
+cam4,__sw_core_MOD_d_sw,115503078,55455246,0,0.0
+cam4,__tp_core_MOD_tp2d,122973123,48959487,1642330,0.03354467337453924
+cam4,__tp_core_MOD_fyppm,92482560,36993024,23272591,0.6291075582250318
+cam4,trac2d_,23829358,21542362,3567640,0.16561043770409206
+cam4,te_map_,21768744,21406734,4161613,0.19440672266960482
+cam4,__mapz_module_MOD_mapn_ppm_tracer,27489130,21019498,7772932,0.36979627201372745
+cam4,__tp_core_MOD_ytp,46865088,19410624,9960985,0.513171807356631
+cam4,__mapz_module_MOD_map1_ppm,56445661,18032221,11135741,0.6175468346356225
+cam4,__m_attrvect_MOD_init_,28256256,17086464,11637620,0.6811017188810979
+cam4,ncio_open,13167261,13155530,1570667,0.1193921491570465
+cam4,__radae_MOD_initialize_radbuffer,23777280,11888640,373248,0.031395348837209305
+cam4,__alloc_mod_MOD_alloc_check_1d_double,61980768,11746656,6230609,0.5304155497530532
+cam4,__tracer_data_MOD_trcdata_init,20394623,10274714,147100,0.014316700202068884
+cam4,__advect_tend_MOD_compute_adv_tends_xyz,12939264,9693216,326798,0.03371409447597165
+deepsjeng,alloc_hash(),223975970,116411650,99834271,0.8575969071823997
+exchange2,MAIN__,11732,6429,751,0.11681443459324933
+fotonik,MAIN__,234812611,186896160,186411878,0.9974088178162676
+fotonik,__upml_mod_MOD_upml_init,35099308,26704928,26415778,0.9891724104255215
+fotonik,__power_mod_MOD_power_init,25939928,19427258,19422663,0.9997634766573852
+fotonik,__readline_mod_MOD_readline,1643394,216885,67782,0.31252507089010306
+fotonik,__power_mod_MOD_power_print,31071,25899,3504,0.13529479902698946
+fotonik,__plane_source_mod_MOD_plane_source_init,87845,14641,0,0.0
+gcc,ggc_alloc_stat,250318,84580,23308,0.2755734216126744
+gcc,pool_alloc,10226,5420,2894,0.5339483394833948
+gcc,_cpp_init_tokenrun,3065,3043,1061,0.3486690765691752
+gcc,_cpp_get_buff,3902,2668,1001,0.3751874062968516
+imagick,AcquireAlignedMemory,2259012,1359420,1059052,0.7790469464918862
+imagick,_IO_file_doallocate,864018,859922,180360,0.2097399531585423
+imagick,AcquireMagickMemory,43742,5541,4601,0.8303555314925104
+lbm,LBM_allocateGrid,556200048,502600048,403782526,0.803387360599695
+leela,UCTNode::sort_children(int),937140,775212,476716,0.6149492009927607
+leela,"std::vector<TTEntry, std::allocator<TTEntry> >::_M_fill_insert(__gnu_cxx::__normal_iterator<TTEntry*, std::vector<TTEntry, std::allocator<TTEntry> > >, unsigned long, TTEntry const&)",874297,453561,270972,0.597432318916309
+leela,"GameState::play_move(int, int)",33699358,437654,187566,0.42857142857142855
+leela,"std::vector<unsigned char, std::allocator<unsigned char> >::_M_fill_insert(__gnu_cxx::__normal_iterator<unsigned char*, std::vector<unsigned char, std::allocator<unsigned char> > >, unsigned long, unsigned char const&)",2359296,262144,461,0.001758575439453125
+leela,"std::vector<SGFTree, std::allocator<SGFTree> >::reserve(unsigned long)",515226,261360,41136,0.1573921028466483
+leela,"UCTSearch::dump_stats(GameState&, UCTNode&)",19921440,258720,110880,0.42857142857142855
+leela,UCTSearch::dump_analysis(),14229600,184800,79200,0.42857142857142855
+leela,_IO_file_doallocate,19469,15373,1823,0.11858453132114746
+leela,main,11749,8289,2790,0.33659066232356133
+leela,"std::vector<KoState, std::allocator<KoState> >::operator=(std::vector<KoState, std::allocator<KoState> > const&)",253330,3290,1410,0.42857142857142855
+mcf,primal_net_simplex,306998904,306962018,68252809,0.2223493624543477
+mcf,resize_prob,178745945,141466919,48633983,0.34378343250693116
+mcf,price_out_impl,69117977,31151190,298466,0.009581207010069278
+mcf,read_min,12992557,10933784,317049,0.028997188896360125
+namd,"Patch::readfile(_IO_FILE*, Molecule*)",485405320,483929736,2979278,0.006156426808209199
+namd,ComputeNonbondedUtil::calc_self_energy(nonbonded*),470765101,441884184,20816,4.710736603326812e-05
+namd,ComputeNonbondedUtil::calc_self_energy_fullelect(nonbonded*),169815360,169811316,83178,0.0004898260137151284
+namd,"ComputeList::readfile(_IO_FILE*, PatchList*)",12368608,12352910,0,0.0
+namd,ResultSet::ResultSet(int),7193472,3320064,0,0.0
+namd,Molecule::readfile(_IO_FILE*),462427,92224,0,0.0
+namd,"ComputeNonbondedUtil::select(SimParameters*, Molecule*, LJTable*)",54973,8064,256,0.031746031746031744
+namd,ComputeNonbondedUtil::calc_pair_energy(nonbonded*),49631472,6563,14,0.002133170806033826
+omnetpp,cMessageHeap::insert(cMessage*),58946026,58886618,51116,0.0008680410207969492
+omnetpp,_IO_file_doallocate,18105382,18101032,745783,0.04120113151559535
+omnetpp,__uniquename_29(),160569,159313,4,2.510780664478103e-05
+omnetpp,ned2yyparse(),73661,69428,38751,0.5581465691075647
+omnetpp,cSimulation::registerModule(cModule*),13611647,58367,0,0.0
+omnetpp,"ned2yy_scan_bytes(char const*, int)",39584,25064,8202,0.3272422598148739
+omnetpp,NEDFileBuffer::readFile(char const*),16888,2370,14,0.00590717299578059
+omnetpp,NEDFileBuffer::stripComment(char const*),6941,2192,1273,0.5807481751824818
+parest,"dealii::TableBase<2, double>::TableBase(dealii::TableIndices<2> const&)",11277696,11274624,3148824,0.27928416947651646
+parest,"dealii::Vector<double>::reinit(unsigned int, bool)",5518114,5405624,937422,0.1734160570546527
+parest,dealii::SparseMatrix<double>::reinit(dealii::SparsityPattern const&),1318372,827008,26560,0.03211577155239127
+parest,void METomography::Slave::internal::SparseDirectSPEC::solve<double>(dealii::Vector<double>&) const,671726,642800,398762,0.6203515868077163
+parest,"dealii::SparsityPattern::reinit(unsigned int, unsigned int, dealii::VectorSlice<std::vector<unsigned int, std::allocator<unsigned int> > const> const&, bool)",1718633,605119,1,1.652567511514264e-06
+parest,"dealii::CompressedSetSparsityPattern::reinit(unsigned int, unsigned int)",265528,243698,0,0.0
+parest,"std::vector<unsigned int, std::allocator<unsigned int> >::_M_fill_insert(__gnu_cxx::__normal_iterator<unsigned int*, std::vector<unsigned int, std::allocator<unsigned int> > >, unsigned long, unsigned int const&)",40616,20308,0,0.0
+parest,"void dealii::SolverGMRES<dealii::Vector<double> >::solve<dealii::SparseMatrix<double>, dealii::SparseILU<double> >(dealii::SparseMatrix<double> const&, dealii::Vector<double>&, dealii::Vector<double> const&, dealii::SparseILU<double> const&)",29366,16722,5698,0.34074871426862813
+parest,"dealii::SparsityPattern::copy_from(dealii::CompressedSetSparsityPattern const&, bool)",12856,6428,0,0.0
+parest,"dealii::FESystem<3, 3>::initialize()",48660,5386,4504,0.8362421091719272
+parest,"std::vector<dealii::Tensor<1, 3>, std::allocator<dealii::Tensor<1, 3> > >::_M_fill_insert(__gnu_cxx::__normal_iterator<dealii::Tensor<1, 3>*, std::vector<dealii::Tensor<1, 3>, std::allocator<dealii::Tensor<1, 3> > > >, unsigned long, dealii::Tensor<1, 3> const&)",9216,4608,992,0.2152777777777778
+parest,"dealii::internal::Triangulation::TriaObjects<dealii::internal::Triangulation::TriaObject<1> >::reserve_space(unsigned int, unsigned int)",9449,4326,4326,1.0
+parest,"std::vector<std::vector<double, std::allocator<double> >, std::allocator<std::vector<double, std::allocator<double> > > >::_M_fill_insert(__gnu_cxx::__normal_iterator<std::vector<double, std::allocator<double> >*, std::vector<std::vector<double, std::allocator<double> >, std::allocator<std::vector<double, std::allocator<double> > > > >, unsigned long, std::vector<double, std::allocator<double> > const&)",2400,1200,816,0.68
+parest,"void dealii::DoFTools::compute_intergrid_transfer_representation<3, 3>(dealii::DoFHandler<3, 3> const&, unsigned int, dealii::DoFHandler<3, 3> const&, unsigned int, dealii::InterGridMap<dealii::DoFHandler<3, 3> > const&, std::vector<std::map<unsigned int, float, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, float> > >, std::allocator<std::map<unsigned int, float, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, float> > > > >&)",2304,1152,0,0.0
+parest,dealii::internal::Triangulation::TriaObjectsHex::reserve_space(unsigned int),2048,1024,1024,1.0
+parest,"std::vector<double, std::allocator<double> >::_M_fill_insert(__gnu_cxx::__normal_iterator<double*, std::vector<double, std::allocator<double> > >, unsigned long, double const&)",2000,1000,488,0.488
+perlbench,Perl_savestack_grow,10616745,10616325,3404800,0.3207136179421787
+perlbench,Perl_new_stackinfo,4588526,4587475,4545427,0.9908341734832342
+perlbench,Perl_sv_grow,3306103,178420,8522,0.047763703620670325
+perlbench,Perl_yyparse,68803,68321,40020,0.5857642598908096
+perlbench,Perl_Slab_Alloc,98676,55558,13082,0.23546563951186147
+perlbench,PerlIOBuf_get_base,34806,26673,3139,0.11768454991939414
+perlbench,S_hsplit,3015,1907,60,0.03146303093864709
+pop2,__m_attrvect_MOD_sort_,199166074,184743964,136642220,0.7396302268365315
+pop2,__m_mergesorts_MOD_isort_,185393564,175901564,127839385,0.7267666193121513
+pop2,__m_attrvect_MOD_init_,197839622,115066525,37539404,0.32624087674499597
+pop2,__tavg_MOD_init_tavg,125147147,61884813,61416191,0.9924275120618042
+pop2,__shr_mct_mod_MOD_shr_mct_smatreaddnc,32817845,23974631,7471615,0.3116467152299445
+pop2,__diag_bsf_MOD_init_diag_bsf,60976544,21604545,19267134,0.8918092929057289
+pop2,__shr_map_mod_MOD_shr_map_mapset_global,19809540,11838702,8988294,0.7592296858219761
+pop2,ncio_open,5957640,5896192,562265,0.09536070060133726
+pop2,__passive_tracers_MOD_init_passive_tracers,10401751,5864547,5864374,0.9999705007053401
+pop2,__m_globaltolocal_MOD_globalsegmaptolocalmatrix_,13407270,4469090,0,0.0
+pop2,__initial_MOD_init_ts,5964391,4459378,26012,0.005833100490696236
+pop2,__io_binary_MOD_read_real8_3d,3897600,3828000,68669,0.017938610240334378
+pop2,__hmix_aniso_MOD_init_aniso,6597784,3359527,3333,0.0009921039479664846
+pop2,__tidal_mixing_MOD_init_tidal_mixing,4746245,3172594,681290,0.2147422582278098
+pop2,__m_rearranger_MOD_init_,3517028,1758514,0,0.0
+pop2,__shr_ncread_mod_MOD_shr_ncread_domain,5322432,1738048,11476,0.006602809588688
+pop2,__rearrange_MOD_rearrange_io2comp_double,2436480,1624320,821760,0.5059101654846335
+pop2,__forcing_sfwf_MOD_init_sfwf,2697887,1192469,154040,0.1291773622626668
+pop2,__m_router_MOD_initp_,1177200,741204,587912,0.7931851420121856
+pop2,__seq_flux_mct_MOD_seq_flux_init_mct,919640,654930,252396,0.385378590078329
+povray,pov::open_istack(),24310864,24310126,5021762,0.20657079276347642
+povray,pov::Create_Priority_Queue(unsigned int),12071380,12071313,1830341,0.15162733333151082
+povray,"POVMSUtil_TempAlloc(void**, int)",1209249,1139650,1123561,0.9858825077874787
+povray,pov::NewComTexData(),856444,856339,380845,0.4447362551512894
+povray,_IO_file_doallocate,10442,10195,2416,0.2369789112309956
+povray,pov::Create_BMap_Entries(int),124086,7764,3052,0.3930963420917053
+povray,pov::Initialize_Radiosity_Code(),9608,4805,0,0.0
+povray,pov::Initialize_Tokenizer(),1696,1655,1391,0.8404833836858006
+roms,__mod_ocean_MOD_allocate_ocean,276487824,257017758,39617186,0.15414182392797932
+roms,__step2d_mod_MOD_step2d_tile,385821440,191389560,8035193,0.0419834446560199
+roms,__step3d_uv_mod_MOD_step3d_uv_tile,159298560,158218240,5389521,0.03406384118544107
+roms,__step3d_t_mod_MOD_step3d_t,144517120,138458880,17163698,0.12396242118959795
+roms,__pre_step3d_mod_MOD_pre_step3d,115927040,110334720,31350468,0.28413964344133924
+roms,__t3dmix_mod_MOD_t3dmix2,81305920,78941280,31348938,0.3971171736764339
+roms,__rhs3d_mod_MOD_rhs3d,80582320,78405000,24068139,0.3069719915821695
+roms,__lmd_skpp_mod_MOD_lmd_skpp,81432576,71430144,17648249,0.24707004650585612
+roms,__mod_coupling_MOD_allocate_coupling,70098959,69786605,4549472,0.06519119249317258
+roms,__rho_eos_mod_MOD_rho_eos_tile,71672832,69500928,15300612,0.220149751093971
+roms,__mod_mixing_MOD_allocate_mixing,74844420,68076750,30855209,0.4532415105010154
+roms,__mod_grid_MOD_allocate_grid,70346245,63577910,14117790,0.22205495588011623
+roms,__prsgrd_mod_MOD_prsgrd,65656800,59622360,27161051,0.45555142399596393
+roms,__lmd_vmix_mod_MOD_lmd_vmix,49025592,42312312,8035312,0.1899048201384032
+roms,__uv3dmix_mod_MOD_uv3dmix2,20278800,19602840,3920568,0.2
+roms,__wvelocity_mod_MOD_wvelocity,24019968,17917440,2289744,0.12779414916416632
+roms,__diag_mod_MOD_diag_tile,12807796,12388754,1016441,0.08204545832454176
+roms,__ini_fields_mod_MOD_ini_fields_tile,6029312,5996544,3192320,0.5323599726775956
+roms,__mod_forces_MOD_allocate_forces,5127531,4329293,2721415,0.6286049477362701
+roms,__bulk_flux_mod_MOD_bulk_flux_tile,2281752,829728,207432,0.25
+wrf,__module_alloc_space_0_MOD_alloc_space_field_core_0,1252482587,1238500354,103193845,0.08332161122660446
+wrf,solve_em_,1008543007,841365667,330259937,0.3925284212958027
+wrf,__module_alloc_space_2_MOD_alloc_space_field_core_2,184123883,178716829,42427272,0.23739942252444507
+wrf,__module_bl_ysu_MOD_ysu2d,270401126,165077534,31269969,0.18942595180759123
+wrf,__module_mp_wsm5_MOD_wsm52d,318356216,158248376,99995040,0.631886674148239
+wrf,__module_small_step_em_MOD_advance_uv,144045300,143213700,21955047,0.1533027007891005
+wrf,__module_advect_em_MOD_advect_scalar,135312450,132219750,57729227,0.4366157627737157
+wrf,__module_alloc_space_1_MOD_alloc_space_field_core_1,117949467,108562375,73821466,0.6799912584815871
+wrf,__module_em_MOD_rk_update_scalar,156467700,103250700,67797911,0.6566339114407941
+wrf,__module_small_step_em_MOD_advance_w,92546370,91726320,189,2.0604772981190132e-06
+wrf,__module_mp_wsm5_MOD_wsm5,72621814,72334264,55504431,0.7673324912796514
+wrf,__module_diffusion_em_MOD_cal_deform_and_div,81328920,70179600,3761361,0.05359621599439153
+wrf,__module_small_step_em_MOD_advance_mu_t,47562900,46742850,1699742,0.03636367915092897
+wrf,__module_bl_ysu_MOD_ysu,39334590,38859360,15589272,0.4011716096199217
+wrf,ncio_create,34774356,34757976,13693449,0.39396566129167016
+wrf,__module_advect_em_MOD_advect_w,31620150,30906450,100008,0.0032358294142484823
+wrf,__module_advect_em_MOD_advect_u,31087800,30379050,4,1.3166968684010857e-07
+wrf,__module_advect_em_MOD_advect_v,31057560,30343860,13,4.284227517527434e-07
+wrf,__module_big_step_utilities_em_MOD_horizontal_pressure_gradient,21740040,21556080,769981,0.0357198989797774
+wrf,__module_em_MOD_rk_update_scalar_pd,35478000,17739000,10828685,0.6104450645470433
+x264,x264_encoder_open_96,2026976147,2026610492,863070997,0.4258692039772584
+x264,x264_frame_new,571714647,501001678,49704596,0.09921043817342265
+x264,x264_macroblock_cache_allocate,87845725,86702004,19254052,0.22207159133253712
+x264,_IO_file_doallocate,7328824,7304248,1496792,0.20492075296457624
+x264,x264_picture_alloc,718850,710784,284899,0.4008235976048983
+x264,x264_frame_pop_blank_unused,111722,109766,106441,0.9697082885410783
+x264,x264_cqm_init,19976,6656,6656,1.0
+xalancbmk,xercesc_2_7::MemoryManagerImpl::allocate(unsigned long),701335,457906,209305,0.45709163015990184
+xalancbmk,_IO_file_doallocate,34660,30564,1616,0.052872660646512235
+xz,lzma_alloc,1407905930,1375117962,292586656,0.2127720414432344
+xz,sha_process,33458763,31357249,16250761,0.5182457491727033
+xz,spec_mem_init,30516678,28682988,18126672,0.6319659583583133
+xz,_IO_file_doallocate,8255,7802,1385,0.17751858497821071
