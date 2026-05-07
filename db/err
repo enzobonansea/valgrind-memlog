@@ -1,10 +1,2 @@
-[26_outlier_channels] watchdog (spill): spill=202.3GB free=427.1GB swap=0.0GB elapsed=545s — INTERRUPTING
-[26_outlier_channels] FAILED: INTERRUPT Error: Interrupted!
-[31_cacheline_homogeneity] FAILED: Out of Memory Error: failed to pin block of size 256.0 KiB (14.9 GiB/14.9 GiB used)
-
-Possible solutions:
-* Reducing the number of threads (SET threads=X)
-* Disabling insertion-order preservation (SET preserve_insertion_order=false)
-* Increasing the memory limit (SET memory_limit='...GB')
-
-See also https://duckdb.org/docs/stable/guides/performance/how_to_tune_workloads
+./remaining.sh: line 7: 11760 Killed                  python3 "$DIR/run.py" "$(basename "$d")"
+./remaining.sh: line 7: 13460 Killed                  python3 "$DIR/run.py" "$(basename "$d")"
