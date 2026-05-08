@@ -1,5 +1,6 @@
 -- @set threads 1
--- @set watch_spill_gb 130
+-- @set memory_limit 22GB
+-- @set watch_spill_gb 200
 -- Compressed-cache-line homogeneity per (bench, alloc_type). For each
 -- 64-byte aligned window in the last-write snapshot of each buffer we
 -- check whether all stored values share their high bits — in which case a
@@ -28,15 +29,28 @@
 -- COUNT(DISTINCT x) = 1: the former keeps O(1) state per group, the
 -- latter a hash set per group, which OOM'd the 16GB buffer pool on
 -- bwaves (millions of lines × 4 distinct-set columns).
+--
+-- The snapshot key is (alloc_type, alloc_addr, "offset") — generation
+-- is intentionally collapsed. cam4 reuses the same address across ~6
+-- generations on average, blowing the per-cell cardinality up to ~700M
+-- in the 64-bit half (~30 GB hash-table state); arg_max didn't spill
+-- cleanly and OOM'd at both the 16GB and bumped-22GB caps. Dropping
+-- generation gives "physical-address current content" semantics rather
+-- than "per-buffer final state": for each (alloc_type, alloc_addr,
+-- offset) we keep the latest write across all reuses of that address.
+-- This matches what a real cache compressor sees — a physical line
+-- holds whatever was most recently written there, regardless of which
+-- logical buffer owned it. Cardinality drops ~6× on cam4 (~100M cells)
+-- and the snapshot fits comfortably in the 22GB cap.
 WITH snapshot AS (
-    SELECT alloc_type, alloc_addr, generation, "offset",
+    SELECT alloc_type, alloc_addr, "offset",
         arg_max(value, rn) AS value
     FROM {bench}
     WHERE alloc_type IN ('32bits', '64bits')
-    GROUP BY alloc_type, alloc_addr, generation, "offset"
+    GROUP BY alloc_type, alloc_addr, "offset"
 ),
 per_line AS (
-    SELECT alloc_type, alloc_addr, generation,
+    SELECT alloc_type, alloc_addr,
         "offset" // 64                                             AS line_id,
         COUNT(*)                                                   AS slots,
         MIN(value >> 32) = MAX(value >> 32)                        AS homog_high32,
@@ -51,7 +65,7 @@ per_line AS (
                 WHEN '32bits' THEN ((value >> 23) & 255)
             END)                                                   AS homog_exp
     FROM snapshot
-    GROUP BY alloc_type, alloc_addr, generation, "offset" // 64
+    GROUP BY alloc_type, alloc_addr, "offset" // 64
 )
 SELECT
     '{bench}' AS bench,

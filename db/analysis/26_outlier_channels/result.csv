@@ -1,18 +1,180 @@
 bench,alloc_type,site,total,n_outlier_999,distinct_offsets,outlier_offsets,channel_frac
-blender,32bits,render_result_new,5961826,1670,18497,951,0.051413742769097694
-blender,32bits,zbuffer_solid,4585900,3588148,9251,9249,0.9997838071559831
-blender,32bits,do_display_buffer_apply_thread,2589889,2523,184321,2523,0.013688076779097336
-blender,64bits,IMB_colormanagement_imbuf_for_write,2072541,2307,1036271,2307,0.002226251627228785
-blender,32bits,zbufshadeDA_tile,1528209,1195917,9251,9249,0.9997838071559831
-blender,32bits,render_layer_add_pass,1431139,1334907,523026,523024,0.9999961760983201
-blender,64bits,render_result_new,1036271,1140,1036271,1140,0.001100098333351025
-blender,64bits,zbufshadeDA_tile,68861,69,4625,69,0.014918918918918918
-blender,64bits,DNA_sdna_from_data,56221,37,56216,37,0.0006581756083677245
-blender,64bits,BLI_mempool_create,41634,65,2048,17,0.00830078125
-blender,64bits,add_memfilechunk,20684,24,12942,24,0.0018544274455261937
-blender,64bits,read_struct,12276,12,11434,12,0.001049501486793773
-blender,64bits,oldnewmap_new,7472,16,954,16,0.016771488469601678
-blender,64bits,BLI_mempool_as_arrayN,5717,13,5717,13,0.002273919888053175
-blender,64bits,get_bhead,1535,3,975,3,0.003076923076923077
-blender,64bits,ghash_new,1397,1,755,1,0.0013245033112582781
-blender,64bits,gz_look,1018,1,1018,1,0.0009823182711198428
+blender,32bits,render_result_new,5961826,1671,17790,914,0.05137717818999438
+blender,32bits,zbuffer_solid,4585900,3588148,8733,8683,0.9942745906332303
+blender,32bits,do_display_buffer_apply_thread,2589889,2568,191339,2373,0.012402071715646052
+blender,64bits,IMB_colormanagement_imbuf_for_write,2072541,2198,1038085,2603,0.002507501794169071
+blender,32bits,zbufshadeDA_tile,1528209,1195917,8733,8683,0.9942745906332303
+blender,32bits,render_layer_add_pass,1431139,1334907,616651,587141,0.9521447301634149
+blender,64bits,render_result_new,1036271,1032,1038085,783,0.0007542734939817067
+blender,64bits,zbufshadeDA_tile,68861,69,4916,54,0.010984540276647681
+blender,64bits,DNA_sdna_from_data,56221,52,55132,51,0.0009250526010302546
+blender,64bits,BLI_mempool_create,41634,26,1798,8,0.004449388209121246
+blender,64bits,add_memfilechunk,20684,10,13599,10,0.0007353481873667181
+blender,64bits,read_struct,12276,12,12306,12,0.0009751340809361287
+blender,64bits,oldnewmap_new,7472,16,941,16,0.01700318809776833
+blender,64bits,BLI_mempool_as_arrayN,5717,4,6153,4,0.0006500893872907525
+blender,64bits,get_bhead,1535,3,906,3,0.0033112582781456954
+blender,64bits,ghash_new,1397,1,704,1,0.0014204545454545455
+blender,64bits,gz_look,1018,1,899,1,0.0011123470522803114
+bwaves,64bits,shell_,532268283,1548536,73498345,1402070,0.019076211852117213
+bwaves,64bits,bi_cgstab_block_,163176147,161444,7663684,36908,0.004815960574574839
+bwaves,64bits,flux_,11508754,12699,1407828,4875,0.003462780964720122
+bwaves,32bits,MAIN__,1610,108,482,108,0.22406639004149378
+cactus,64bits,PUGH_EnableGArrayDataStorage,210474687,193284,67930,18716,0.27551891653172383
+cam4,64bits,cd_core_,218939651,241869,1536246,28851,0.01878019535933698
+cam4,64bits,__dyn_comp_MOD_dyn_run,202021643,195286,22391577,37403,0.0016704049027006897
+cam4,64bits,__sw_core_MOD_c_sw,171551518,162782,474860,12845,0.02705007791770206
+cam4,64bits,__tp_core_MOD_tp2d,122259214,121690,517860,17327,0.03345884988220755
+cam4,64bits,__sw_core_MOD_d_sw,106429086,102608,341596,8881,0.02599854799236525
+cam4,64bits,__phys_buffer_MOD_pbuf_allocate,105376146,0,1093791,0,0.0
+cam4,64bits,__dyn_comp_MOD_dyn_init,96882763,0,5382639,0,0.0
+cam4,32bits,__physics_types_MOD_physics_type_alloc,88412378,8861184,7135416,7102699,0.9954148433672262
+cam4,64bits,__tp_core_MOD_fyppm,86823896,86587,430170,10752,0.02499476950972871
+cam4,64bits,__mapz_module_MOD_ppm2m,59109893,1229443,83398,16108,0.19314611861195713
+cam4,64bits,__mapz_module_MOD_map1_ppm,48646243,48636,65124,4482,0.06882255389718077
+cam4,64bits,__tp_core_MOD_ytp,43776286,42055,204624,5986,0.029253655485182578
+cam4,64bits,__radae_MOD_initialize_radbuffer,23777280,0,11520410,0,0.0
+cam4,64bits,__mapz_module_MOD_mapn_ppm_tracer,23140325,25020,10854,739,0.06808549843375714
+cam4,64bits,trac2d_,23040605,22421,1504978,10812,0.007184158173740746
+cam4,64bits,te_map_,21591624,21892,189208,3214,0.01698659676123631
+cam4,64bits,__tp_core_MOD_tpcc,21510166,20348,87386,1032,0.011809672029844598
+cam4,64bits,__cam_diagnostics_MOD_diag_allocate,11647499,0,2897518,0,0.0
+cam4,64bits,__physics_types_MOD_physics_type_alloc,11268524,0,1138818,0,0.0
+cam4,64bits,__tracer_data_MOD_trcdata_init,10329984,10569,1478336,6758,0.004571355902852937
+exchange2,32bits,MAIN__,4016,35,264,37,0.14015151515151514
+fotonik,32bits,__material_mod_MOD_mat_init,11778008,62528,11094054,60353,0.0054401213478859935
+fotonik,64bits,__upml_mod_MOD_upml_init,1572772,21,749559,21,2.801647368652768e-05
+fotonik,64bits,MAIN__,484234,492,367741,510,0.0013868456332038037
+fotonik,32bits,__readline_mod_MOD_readline,130158,16178,311,33,0.10610932475884244
+fotonik,32bits,__power_mod_MOD_power_init,37710,104,33508,97,0.0028948310851140027
+fotonik,64bits,__plane_source_mod_MOD_plane_source_init,29282,30,31312,32,0.001021972406745018
+fotonik,32bits,__power_mod_MOD_power_print,9421,14,103,13,0.1262135922330097
+fotonik,64bits,__power_mod_MOD_power_init,8127,608,1872,288,0.15384615384615385
+gcc,64bits,ht_create,1617,2,1802,2,0.0011098779134295228
+gcc,32bits,pool_alloc,1003,122,628,87,0.13853503184713375
+imagick,64bits,AcquireAlignedMemory,1075203,253520,2412,1989,0.8246268656716418
+lbm,64bits,LBM_allocateGrid,553520048,593456,57837818,124734,0.002156616627549815
+leela,64bits,UCTNode::sort_children(int),557404,1995,10912,390,0.03574046920821115
+leela,32bits,"std::vector<TTEntry, std::allocator<TTEntry> >::_M_fill_insert(__gnu_cxx::__normal_iterator<TTEntry*, std::vector<TTEntry, std::allocator<TTEntry> > >, unsigned long, TTEntry const&)",440674,462,46170,152,0.0032921810699588477
+mcf,64bits,primal_net_simplex,245308163,0,14459,0,0.0
+mcf,64bits,resize_prob,165216827,0,20122824,0,0.0
+mcf,64bits,price_out_impl,69117977,80073,3729042,11313,0.003033755050224696
+mcf,32bits,read_min,9950457,14623,140672,8594,0.06109247042766151
+mcf,64bits,read_min,1708767,11971,1759200,14250,0.008100272851296044
+nab,32bits,get,1252,12,572,6,0.01048951048951049
+namd,64bits,"Patch::readfile(_IO_FILE*, Molecule*)",480840678,830016,5631,5631,1.0
+namd,64bits,ComputeNonbondedUtil::calc_self_energy(nonbonded*),440782456,442712,2501,2250,0.899640143942423
+namd,64bits,ComputeNonbondedUtil::calc_self_energy_fullelect(nonbonded*),168692856,113030,1877,1877,1.0
+namd,32bits,"ComputeList::readfile(_IO_FILE*, PatchList*)",12354469,12508,14840,2020,0.13611859838274934
+namd,64bits,ResultSet::ResultSet(int),6086580,3873408,3802092,3802092,1.0
+namd,32bits,Molecule::readfile(_IO_FILE*),460690,92390,360322,88249,0.24491704641959136
+namd,64bits,"ComputeNonbondedUtil::select(SimParameters*, Molecule*, LJTable*)",47023,45,43372,45,0.001037535737342064
+namd,64bits,LJTable::readfile(_IO_FILE*),27888,36,23798,33,0.0013866711488360367
+namd,64bits,ComputeNonbondedUtil::calc_pair_energy(nonbonded*),2188,42,1965,40,0.020356234096692113
+namd,64bits,Molecule::readfile(_IO_FILE*),1307,1,718,1,0.001392757660167131
+namd,64bits,"PatchList::readfile(_IO_FILE*, Molecule*)",1153,144,895,161,0.17988826815642459
+omnetpp,64bits,cMessageHeap::insert(cMessage*),58946026,61757,39866,374,0.009381427783073295
+omnetpp,64bits,cSimulation::registerModule(cModule*),13552359,14564,49044,1673,0.03411222575646358
+omnetpp,64bits,"cIndexedFileOutputVectorManager::registerVector(char const*, char const*)",243254,247,212295,279,0.0013142090016250972
+omnetpp,64bits,__uniquename_29(),160505,165,1298,145,0.11171032357473036
+omnetpp,64bits,cModule::ChannelIterator::init(cModule const*),2276,4,1298,2,0.0015408320493066256
+parest,64bits,"dealii::TableBase<2, double>::TableBase(dealii::TableIndices<2> const&)",7733352,7546,844,144,0.17061611374407584
+parest,64bits,"dealii::Vector<double>::reinit(unsigned int, bool)",4891312,4754,51498,1900,0.0368946366849198
+parest,32bits,"dealii::SparsityPattern::reinit(unsigned int, unsigned int, dealii::VectorSlice<std::vector<unsigned int, std::allocator<unsigned int> > const> const&, bool)",1708956,1107084,1210549,1210549,1.0
+parest,64bits,dealii::SparseMatrix<double>::reinit(dealii::SparsityPattern const&),753472,436,261493,539,0.002061240645065069
+parest,64bits,void METomography::Slave::internal::SparseDirectSPEC::solve<double>(dealii::Vector<double>&) const,559600,846,9186,19,0.0020683649031134335
+parest,64bits,"dealii::CompressedSetSparsityPattern::reinit(unsigned int, unsigned int)",252430,255,18691,68,0.003638114600609919
+parest,32bits,"std::vector<unsigned int, std::allocator<unsigned int> >::_M_fill_insert(__gnu_cxx::__normal_iterator<unsigned int*, std::vector<unsigned int, std::allocator<unsigned int> > >, unsigned long, unsigned int const&)",21332,1045,6984,1128,0.16151202749140894
+parest,32bits,"dealii::SparsityTools::reorder_Cuthill_McKee(dealii::SparsityPattern const&, std::vector<unsigned int, std::allocator<unsigned int> >&, std::vector<unsigned int, std::allocator<unsigned int> > const&)",15360,28,12655,29,0.0022915843540102726
+parest,64bits,"dealii::Vector<double>::Vector<dealii::internal::BlockVectorIterators::Iterator<dealii::BlockVectorBase<dealii::Vector<double> >, true> >(dealii::internal::BlockVectorIterators::Iterator<dealii::BlockVectorBase<dealii::Vector<double> >, true>, dealii::internal::BlockVectorIterators::Iterator<dealii::BlockVectorBase<dealii::Vector<double> >, true>)",9898,9,10570,9,0.0008514664143803217
+parest,64bits,"dealii::SparsityPattern::reinit(unsigned int, unsigned int, dealii::VectorSlice<std::vector<unsigned int, std::allocator<unsigned int> > const> const&, bool)",9642,9,6238,9,0.0014427701186277653
+parest,64bits,"void dealii::SolverGMRES<dealii::Vector<double> >::solve<dealii::SparseMatrix<double>, dealii::SparseILU<double> >(dealii::SparseMatrix<double> const&, dealii::Vector<double>&, dealii::Vector<double> const&, dealii::SparseILU<double> const&)",8567,9,2834,7,0.0024700070571630206
+parest,32bits,"dealii::SparsityPattern::copy_from(dealii::CompressedSetSparsityPattern const&, bool)",6428,196,5998,189,0.031510503501167055
+parest,64bits,"std::vector<dealii::Point<3>, std::allocator<dealii::Point<3> > >::reserve(unsigned long)",4440,1464,4292,1465,0.3413327120223672
+parest,64bits,"dealii::Quadrature<3>::Quadrature(std::vector<dealii::Point<3>, std::allocator<dealii::Point<3> > > const&, std::vector<double, std::allocator<double> > const&)",4440,1464,3758,1362,0.3624268227780734
+parest,64bits,"std::vector<dealii::Tensor<1, 3>, std::allocator<dealii::Tensor<1, 3> > >::_M_fill_insert(__gnu_cxx::__normal_iterator<dealii::Tensor<1, 3>*, std::vector<dealii::Tensor<1, 3>, std::allocator<dealii::Tensor<1, 3> > > >, unsigned long, dealii::Tensor<1, 3> const&)",3616,0,4010,0,0.0
+parest,32bits,"void dealii::DoFRenumbering::component_wise<3>(dealii::DoFHandler<3, 3>&, std::vector<unsigned int, std::allocator<unsigned int> > const&)",3072,3,2687,3,0.0011164867882396724
+parest,32bits,"void dealii::DoFTools::compute_intergrid_transfer_representation<3, 3>(dealii::DoFHandler<3, 3> const&, unsigned int, dealii::DoFHandler<3, 3> const&, unsigned int, dealii::InterGridMap<dealii::DoFHandler<3, 3> > const&, std::vector<std::map<unsigned int, float, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, float> > >, std::allocator<std::map<unsigned int, float, std::less<unsigned int>, std::allocator<std::pair<unsigned int const, float> > > > >&)",2304,1152,1384,1384,1.0
+parest,64bits,"std::vector<unsigned int, std::allocator<unsigned int> >::operator=(std::vector<unsigned int, std::allocator<unsigned int> > const&)",1276,1,649,1,0.0015408320493066256
+parest,64bits,"std::vector<double, std::allocator<double> >::reserve(unsigned long)",1200,432,993,403,0.40584088620342396
+perlbench,32bits,Perl_savestack_grow,9647864,321572,376,2,0.005319148936170213
+perlbench,32bits,Perl_yyparse,67543,81,521,24,0.046065259117082535
+perlbench,64bits,S_invlist_trim,2491,2,2050,2,0.000975609756097561
+perlbench,64bits,Perl_sv_grow,1269,2,1040,2,0.0019230769230769232
+perlbench,64bits,S_hsplit,1106,1,335,1,0.0029850746268656717
+pop2,32bits,__m_attrvect_MOD_sort_,199166074,216147,9443252,28863,0.0030564682590277165
+pop2,32bits,__m_mergesorts_MOD_isort_,185393564,204512,4761958,20631,0.0043324615630797245
+pop2,64bits,__m_attrvect_MOD_init_,78073298,15524492,45612338,12337410,0.27048405192472263
+pop2,32bits,__m_attrvect_MOD_init_,32210764,130969,17372785,100883,0.005806956109800473
+pop2,32bits,__diag_bsf_MOD_init_diag_bsf,28435435,16107024,96523,40224,0.41672969136889654
+pop2,32bits,__m_permuter_MOD_permutei_,14331239,44644,4782124,42625,0.008913403332912321
+pop2,32bits,__m_globaltolocal_MOD_globalsegmaptolocalmatrix_,13407270,4474185,8640400,4324795,0.5005318040831443
+pop2,64bits,__hmix_gm_MOD_init_gm,10741286,10553832,10851252,10748122,0.9904960275551614
+pop2,64bits,__shr_map_mod_MOD_shr_map_mapset_global,6452764,2495825,3608598,1455282,0.40328182856610795
+pop2,64bits,ncio_open,5486103,14657,14384,2984,0.20745272525027808
+pop2,64bits,__m_permuter_MOD_permuted_,5117555,946932,5215957,812383,0.1557495585182163
+pop2,64bits,__io_binary_MOD_read_real8_3d,3825896,720251,68498,32112,0.46880200881777573
+pop2,64bits,__hmix_aniso_MOD_init_aniso,3564336,4417,3963282,5073,0.0012799997577765095
+pop2,64bits,__shr_ncread_mod_MOD_shr_ncread_domain,3561150,524578,2002196,432415,0.21597036453973537
+pop2,32bits,__shr_mct_mod_MOD_shr_mct_smatreaddnc,3455092,3437,3517415,3353,0.0009532568661929286
+pop2,32bits,__shr_map_mod_MOD_shr_map_mapset_global,3258320,4940,1736502,2700,0.001554849922430265
+pop2,64bits,__vmix_kpp_MOD_init_vmix_kpp,3057485,39444,3790051,44358,0.011703800291869423
+pop2,64bits,__initial_MOD_init_ts,2954880,1302330,1787996,692481,0.38729449059170157
+pop2,64bits,__tidal_mixing_MOD_init_tidal_mixing,2507622,10014,899272,9222,0.010254961791315641
+pop2,64bits,__shr_dmodel_mod_MOD_shr_dmodel_mapset_global,2461822,322230,1988510,276091,0.1388431539192662
+povray,64bits,pov::open_istack(),20213461,8546,431,51,0.11832946635730858
+povray,64bits,pov::Create_Priority_Queue(unsigned int),12060243,2995660,71,40,0.5633802816901409
+povray,32bits,pov::NewComTexData(),512323,4963,57,9,0.15789473684210525
+povray,64bits,pov::Initialize_Radiosity_Code(),9606,11,5408,6,0.0011094674556213018
+povray,32bits,pov::Create_BMap_Entries(int),4804,454,382,144,0.3769633507853403
+povray,64bits,pov::POVFPU_AddFunction(pov::FunctionCode*),1068,1,950,1,0.0010526315789473684
+povray,64bits,pov::Initialize_Noise(),1000,2,895,2,0.0022346368715083797
+roms,64bits,__step2d_mod_MOD_step2d_tile,351624766,374414,183954,15322,0.08329256227100253
+roms,64bits,__mod_ocean_MOD_allocate_ocean,230655172,273464,19282191,109606,0.005684312534815157
+roms,64bits,__step3d_uv_mod_MOD_step3d_uv_tile,152705608,186880,26574,922,0.03469556709565741
+roms,64bits,__step3d_t_mod_MOD_step3d_t,120648604,120416,133723,6146,0.04596067991295439
+roms,64bits,__lmd_skpp_mod_MOD_lmd_skpp,72991613,580704,179601,7199,0.040083295750023666
+roms,64bits,__rho_eos_mod_MOD_rho_eos_tile,71672832,303239,77724,2454,0.03157325922494982
+roms,64bits,__pre_step3d_mod_MOD_pre_step3d,68985832,78464,127157,6097,0.04794859897606896
+roms,64bits,__mod_coupling_MOD_allocate_coupling,66573232,71253,272551,21978,0.08063811910431443
+roms,64bits,__mod_grid_MOD_allocate_grid,58949006,330267,6101548,132416,0.02170203364785461
+roms,64bits,__rhs3d_mod_MOD_rhs3d,54695421,60870,58108,8788,0.15123563020582365
+roms,64bits,__mod_mixing_MOD_allocate_mixing,52442432,238579,5437451,174601,0.032110818102084965
+roms,64bits,__t3dmix_mod_MOD_t3dmix2,47455335,49595,53802,3303,0.06139176982268317
+roms,64bits,__lmd_vmix_mod_MOD_lmd_vmix,42411768,190624,119842,1500,0.012516480032042188
+roms,64bits,__prsgrd_mod_MOD_prsgrd,38725874,43236,129210,2116,0.01637644145190001
+roms,64bits,__wvelocity_mod_MOD_wvelocity,19126189,18944,109913,1492,0.013574372458216953
+roms,64bits,__uv3dmix_mod_MOD_uv3dmix2,16223040,15996,18504,2440,0.13186338089061825
+roms,64bits,__diag_mod_MOD_diag_tile,11567104,14336,9153,250,0.0273134491423577
+roms,64bits,__ini_fields_mod_MOD_ini_fields_tile,3932160,0,4010,0,0.0
+roms,64bits,__mod_forces_MOD_allocate_forces,2425327,418620,383446,66991,0.17470778153899114
+roms,64bits,__bulk_flux_mod_MOD_bulk_flux_tile,1428728,3144,27449,584,0.021275820612772778
+wrf,32bits,__module_alloc_space_0_MOD_alloc_space_field_core_0,1058577807,1125993,7160366,84884,0.011854701282029438
+wrf,32bits,solve_em_,547707176,1566820,4220390,49907,0.011825210466331311
+wrf,32bits,__module_mp_wsm5_MOD_wsm52d,190979921,207348,61591,2071,0.03362504261986329
+wrf,32bits,__module_bl_ysu_MOD_ysu2d,187119308,2479781,49777,3401,0.06832472828816522
+wrf,32bits,__module_small_step_em_MOD_advance_uv,121961700,125388,3612,2096,0.5802879291251384
+wrf,32bits,__module_alloc_space_2_MOD_alloc_space_field_core_2,119842405,227885,2617338,28439,0.01086561995432
+wrf,32bits,__module_advect_em_MOD_advect_scalar,92744203,95028,14404,616,0.04276589836156623
+wrf,32bits,__module_small_step_em_MOD_advance_w,92531450,89126,3448,1042,0.30220417633410673
+wrf,32bits,__module_diffusion_em_MOD_cal_deform_and_div,81041059,75084,364753,2786,0.007638045471867264
+wrf,32bits,__module_advect_em_MOD_advect_scalar_pd,72727569,73275,648574,3531,0.005444251542615029
+wrf,32bits,__module_ra_rrtm_MOD_rrtm,68514646,191040,14185,118,0.008318646457525555
+wrf,32bits,__module_em_MOD_rk_update_scalar,46027393,40777,110839,3354,0.030260107002048016
+wrf,32bits,__module_small_step_em_MOD_advance_mu_t,45833050,42031,3514,392,0.11155378486055777
+wrf,32bits,__module_ra_rrtm_MOD_rtrn,43798306,5552494,9116,1277,0.14008336989907855
+wrf,32bits,__module_alloc_space_1_MOD_alloc_space_field_core_1,32454852,116220,1104672,21371,0.01934601402045132
+wrf,32bits,__module_advect_em_MOD_advect_w,31532617,30670,6982,1133,0.1622744199369808
+wrf,32bits,__module_advect_em_MOD_advect_u,31074840,30087,14276,395,0.02766881479405996
+wrf,32bits,__module_advect_em_MOD_advect_v,31044420,31110,14404,228,0.015828936406553733
+wrf,32bits,__module_mp_wsm5_MOD_wsm5,27376391,28230,7622,181,0.02374704801889268
+wrf,32bits,__module_big_step_utilities_em_MOD_horizontal_pressure_gradient,20963610,21563,1878,44,0.023429179978700747
+x264,32bits,x264_frame_new,34841056,118168,278261,33252,0.11949931898469422
+x264,32bits,x264_macroblock_cache_allocate,1850174,22910,10044,2046,0.2037037037037037
+x264,32bits,x264_cqm_init,6658,33,3264,16,0.004901960784313725
+x264,32bits,x264_frame_pop_blank_unused,4273,228,72,4,0.05555555555555555
+xalancbmk,64bits,xercesc_2_7::MemoryManagerImpl::allocate(unsigned long),253253,15914,31854,2383,0.07481007094870346
+xz,32bits,lzma_alloc,191803488,189825,35383372,70230,0.0019848306147870814
+xz,64bits,sha_process,21006816,21436,22118832,22175,0.0010025393745926548
+xz,64bits,spec_mem_init,17710505,18603,13605804,12216,0.0008978521225206537
+xz,64bits,lzma_alloc,2179873,2328,2362943,2257,0.000955164809307715
