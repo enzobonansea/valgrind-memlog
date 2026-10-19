@@ -33,6 +33,11 @@
 #include "pub_tool_replacemalloc.h"
 #include "pub_tool_tooliface.h"
 #include "pub_tool_execontext.h"
+#include "pub_tool_debuginfo.h"
+#include "pub_tool_libcfile.h"
+#include "pub_tool_libcproc.h"
+#include "pub_tool_stacktrace.h"
+#include "pub_tool_vki.h"
 
 #include "rbtree.h"
 
@@ -56,9 +61,26 @@ typedef enum {
 
 static SizeT clo_min_block_size = PAGE_SIZE;
 
+/* MX emulation: blocks allocated from the listed sites have every store
+   re-encoded as a 32-element shared-exponent block of doubles. */
+static Bool         clo_mx_round      = False;
+static Long         clo_mx_mbits      = 3;
+static Long         clo_mx_emax       = 8;
+static Long         clo_mx_emin       = -6;
+static const HChar* clo_mx_sites_file = NULL;
+static Bool         clo_mx_list_sites = False;
+static Long         clo_mx_esz        = 8;
+
 static Bool ml_process_cmd_line_option(const HChar* arg)
 {
    if VG_BINT_CLO(arg, "--min-block-size", clo_min_block_size, 1, 1024*1024*1024) {}
+   else if VG_BOOL_CLO(arg, "--mx-round", clo_mx_round) {}
+   else if VG_BINT_CLO(arg, "--mx-mbits", clo_mx_mbits, 0, 52) {}
+   else if VG_BINT_CLO(arg, "--mx-emax", clo_mx_emax, 0, 1023) {}
+   else if VG_BINT_CLO(arg, "--mx-emin", clo_mx_emin, -1022, 0) {}
+   else if VG_STR_CLO(arg, "--mx-sites-file", clo_mx_sites_file) {}
+   else if VG_BOOL_CLO(arg, "--mx-list-sites", clo_mx_list_sites) {}
+   else if VG_BINT_CLO(arg, "--mx-esz", clo_mx_esz, 4, 8) {}
    else {
       return VG_(replacement_malloc_process_cmd_line_option)(arg);
    }
@@ -68,7 +90,13 @@ static Bool ml_process_cmd_line_option(const HChar* arg)
 static void ml_print_usage(void)
 {
    VG_(printf)(
-"    --min-block-size=<bytes>  minimum block size to track [%lu]\n",
+"    --min-block-size=<bytes>  minimum block size to track [%lu]\n"
+"    --mx-round=no|yes         re-encode stores to selected blocks as MX blocks of doubles [no]\n"
+"    --mx-mbits=<0..52>        element mantissa bits kept [3, as E4M3]\n"
+"    --mx-emax=<n> --mx-emin=<n>  element exponent range relative to the block scale [8, -6]\n"
+"    --mx-sites-file=<path>    allocating functions (names or 0x statement addresses) to round [all blocks]\n"
+"    --mx-list-sites=no|yes    print the allocating statement of every tracked block [no]\n"
+"    --mx-esz=4|8              element size: float or double [8]\n",
    (unsigned long)PAGE_SIZE
    );
 }
@@ -88,6 +116,7 @@ typedef struct {
    Addr        payload;   /* Start address of the block */
    SizeT       req_szB;   /* Size in bytes */
    ExeContext* alloc_ec;  /* Allocation stack trace */
+   Bool        mx;        /* Stores are re-encoded as MX blocks */
 } Block;
 
 static rb_root_t tracked_blocks = RB_ROOT;
@@ -228,6 +257,153 @@ static VG_REGPARM(2) void log_store(Addr addr, HWord value) {
 }
 
 /*------------------------------------------------------------*/
+/*--- MX emulation                                         ---*/
+/*------------------------------------------------------------*/
+
+#define MX_BLOCK_ELEMS 32
+#define MX_MAX_SITES   4096
+
+static HChar* mx_sites[MX_MAX_SITES];
+static Int    mx_n_sites = 0;
+
+static ULong mx_blocks_marked = 0, mx_bytes_marked = 0;
+static ULong mx_stores = 0, mx_values_changed = 0, mx_values_flushed = 0;
+static ULong mx_values_unencodable = 0;
+
+static void mx_load_sites(void)
+{
+   if (!clo_mx_sites_file) return;
+   SysRes sr = VG_(open)(clo_mx_sites_file, VKI_O_RDONLY, 0);
+   if (sr_isError(sr)) {
+      VG_(fmsg)("memlog: cannot open --mx-sites-file=%s\n", clo_mx_sites_file);
+      VG_(exit)(1);
+   }
+   Int fd = sr_Res(sr);
+   SizeT cap = 1 << 16, len = 0;
+   HChar* buf = VG_(malloc)("memlog.mx.sites", cap + 1);
+   Int n;
+   while ((n = VG_(read)(fd, buf + len, cap - len)) > 0) {
+      len += n;
+      if (len == cap) {
+         cap *= 2;
+         buf = VG_(realloc)("memlog.mx.sites", buf, cap + 1);
+      }
+   }
+   VG_(close)(fd);
+   buf[len] = 0;
+   HChar* save;
+   for (HChar* tok = VG_(strtok_r)(buf, "\r\n", &save);
+        tok && mx_n_sites < MX_MAX_SITES;
+        tok = VG_(strtok_r)(NULL, "\r\n", &save)) {
+      if (tok[0] != '#' && tok[0] != 0)
+         mx_sites[mx_n_sites++] = tok;
+   }
+}
+
+static Bool is_allocator_frame(const HChar* fn)
+{
+   return VG_(strstr)(fn, "malloc") || VG_(strstr)(fn, "calloc")
+       || VG_(strstr)(fn, "realloc") || VG_(strstr)(fn, "memalign")
+       || VG_(strstr)(fn, "operator new") || VG_(strstr)(fn, "_gfortran");
+}
+
+/* The allocating statement is the first frame outside the allocator, the
+   same frame the offline analysis uses. Sites match by function name or by
+   the statement's address, written as in Memlog's stack traces. */
+static Bool mx_site_selected(ThreadId tid, SizeT szB)
+{
+   if (mx_n_sites == 0 && !clo_mx_list_sites) return True;
+   Addr ips[16];
+   UInt n = VG_(get_StackTrace)(tid, ips, 16, NULL, NULL, 0);
+   DiEpoch ep = VG_(current_DiEpoch)();
+   for (UInt i = 0; i < n; i++) {
+      const HChar* fn;
+      if (!VG_(get_fnname)(ep, ips[i], &fn) || is_allocator_frame(fn))
+         continue;
+      HChar addr[32];
+      VG_(sprintf)(addr, "0x%lX", ips[i]);
+      if (clo_mx_list_sites)
+         VG_(umsg)("MXSITE %s %s %lu\n", addr, fn, szB);
+      if (mx_n_sites == 0) return True;
+      for (Int s = 0; s < mx_n_sites; s++)
+         if (VG_(strcmp)(fn, mx_sites[s]) == 0 || VG_(strcmp)(addr, mx_sites[s]) == 0)
+            return True;
+      return False;
+   }
+   return False;
+}
+
+/* IEEE layout of the stored elements: binary64 or binary32. */
+typedef struct { Int esz, mant, emask, bias; } FpFmt;
+static const FpFmt FMT64 = { 8, 52, 0x7FF, 1023 };
+static const FpFmt FMT32 = { 4, 23, 0xFF, 127 };
+
+static INLINE ULong mx_load(const FpFmt* f, Addr a)
+{ return f->esz == 8 ? *(ULong*)a : *(UInt*)a; }
+
+static INLINE void mx_store(const FpFmt* f, Addr a, ULong v)
+{ if (f->esz == 8) *(ULong*)a = v; else *(UInt*)a = (UInt)v; }
+
+/* Round one element to the format of an MX block whose largest biased
+   exponent is emax: mbits of mantissa while the element is normal
+   (exponent >= scale + emin), fixed quantum below that, zero far below. */
+static ULong mx_quantize(const FpFmt* f, ULong v, Long e, Long emax)
+{
+   Long  ue    = e - f->bias;
+   Long  scale = (emax - f->bias) - clo_mx_emax;
+   Long  qe    = (ue - scale >= clo_mx_emin) ? ue - clo_mx_mbits
+                                             : scale + clo_mx_emin - clo_mx_mbits;
+   Long  shift = qe - (ue - f->mant);
+   ULong mmask = (1ULL << f->mant) - 1;
+   ULong sign  = v & (1ULL << (8 * f->esz - 1));
+   if (shift <= 0) return v;
+   if (shift > f->mant + 1 || qe + f->bias <= 0) { mx_values_flushed++; return sign; }
+   if (shift == f->mant + 1) return sign | ((ULong)(qe + f->bias) << f->mant);
+   ULong r = ((1ULL << f->mant) | (v & mmask)) + (1ULL << (shift - 1));
+   r = (r >> shift) << shift;
+   if (r >> (f->mant + 1)) { r >>= 1; e++; }
+   return sign | ((ULong)e << f->mant) | (r & mmask);
+}
+
+static void mx_encode_block(const FpFmt* f, Block* bk, SizeT bi)
+{
+   Addr  base = bk->payload + bi * MX_BLOCK_ELEMS * f->esz;
+   SizeT left = (bk->req_szB / f->esz) - bi * MX_BLOCK_ELEMS;
+   Int   n    = left < MX_BLOCK_ELEMS ? (Int)left : MX_BLOCK_ELEMS;
+   Long  emax = -1;
+   for (Int i = 0; i < n; i++) {
+      Long e = (mx_load(f, base + i * f->esz) >> f->mant) & f->emask;
+      if (e != 0 && e != f->emask && e > emax) emax = e;
+   }
+   if (emax < 0) return;
+   for (Int i = 0; i < n; i++) {
+      Addr  a = base + i * f->esz;
+      ULong v = mx_load(f, a);
+      Long  e = (v >> f->mant) & f->emask;
+      if (e == 0 || e == f->emask) {
+         if ((v & ~(1ULL << (8 * f->esz - 1))) != 0) mx_values_unencodable++;
+         continue;
+      }
+      ULong q = mx_quantize(f, v, e, emax);
+      if (q != v) { mx_store(f, a, q); mx_values_changed++; }
+   }
+}
+
+static VG_REGPARM(2) void mx_after_store(Addr addr, HWord size)
+{
+   Block* bk = find_block_containing(addr);
+   if (!bk || !bk->mx) return;
+   mx_stores++;
+   const FpFmt* f = clo_mx_esz == 4 ? &FMT32 : &FMT64;
+   SizeT span = MX_BLOCK_ELEMS * f->esz;
+   SizeT nblocks = bk->req_szB / span + ((bk->req_szB % span) >= (SizeT)f->esz);
+   SizeT first = (addr - bk->payload) / span;
+   SizeT last  = (addr + size - 1 - bk->payload) / span;
+   for (SizeT bi = first; bi <= last && bi < nblocks; bi++)
+      mx_encode_block(f, bk, bi);
+}
+
+/*------------------------------------------------------------*/
 /*--- malloc() et al replacement wrappers                  ---*/
 /*------------------------------------------------------------*/
 
@@ -253,6 +429,11 @@ static void* new_block(ThreadId tid, SizeT szB, SizeT alignB, Bool is_zeroed)
       bk->payload  = (Addr)p;
       bk->req_szB  = szB;
       bk->alloc_ec = VG_(record_ExeContext)(tid, 0);
+      bk->mx       = clo_mx_round && mx_site_selected(tid, szB);
+      if (bk->mx) {
+         mx_blocks_marked++;
+         mx_bytes_marked += szB;
+      }
 
       insert_block_rb(bk);
       add_to_buffer(LOG_ALLOC, (Addr)p, 0, szB, bk->alloc_ec);
@@ -397,6 +578,40 @@ static INLINE void wire_log_store(IRSB* bb_out,
    addStmtToIRSB(bb_out, IRStmt_Dirty(dirty));
 }
 
+/* Called after the store so the helper sees the stored value. The declared
+   memory footprint covers any 256-byte MX block the store can touch, so
+   later loads in the superblock are not served from before the rewrite. */
+static IRSB* wire_mx(IRSB* bb_in)
+{
+   IRSB* bb_out = deepCopyIRSBExceptStmts(bb_in);
+   for (Int i = 0; i < bb_in->stmts_used; i++) {
+      IRStmt* stmt = bb_in->stmts[i];
+      if (!stmt) continue;
+      if (stmt->tag != Ist_Store) {
+         addStmtToIRSB(bb_out, stmt);
+         continue;
+      }
+      IRTemp addr_tmp = newIRTemp(bb_out->tyenv, Ity_I64);
+      addStmtToIRSB(bb_out, IRStmt_WrTmp(addr_tmp, stmt->Ist.Store.addr));
+      IRStmt* st = IRStmt_Store(stmt->Ist.Store.end, IRExpr_RdTmp(addr_tmp),
+                                stmt->Ist.Store.data);
+      addStmtToIRSB(bb_out, st);
+      Int size = sizeofIRType(typeOfIRExpr(bb_in->tyenv, stmt->Ist.Store.data));
+      IRTemp lo_tmp = newIRTemp(bb_out->tyenv, Ity_I64);
+      addStmtToIRSB(bb_out, IRStmt_WrTmp(lo_tmp,
+         IRExpr_Binop(Iop_Sub64, IRExpr_RdTmp(addr_tmp), IRExpr_Const(IRConst_U64(256)))));
+      IRDirty* d = unsafeIRDirty_0_N(
+         2, "mx_after_store", (void*)VG_(fnptr_to_fnentry)(mx_after_store),
+         mkIRExprVec_2(IRExpr_RdTmp(addr_tmp),
+                       IRExpr_Const(IRConst_U64(size))));
+      d->mFx   = Ifx_Modify;
+      d->mAddr = IRExpr_RdTmp(lo_tmp);
+      d->mSize = 512 + size;
+      addStmtToIRSB(bb_out, IRStmt_Dirty(d));
+   }
+   return bb_out;
+}
+
 static INLINE IRSB* wire_memlog(IRSB* bb_in)
 {
    IRSB* bb_out = deepCopyIRSBExceptStmts(bb_in);
@@ -490,7 +705,7 @@ static IRSB* ml_instrument(VgCallbackClosure* closure,
     IRType gWordTy,
     IRType hWordTy)
 {
-    return wire_memlog(bb_in);
+    return clo_mx_round ? wire_mx(bb_in) : wire_memlog(bb_in);
 }
 
 /*------------------------------------------------------------*/
@@ -509,6 +724,7 @@ static Bool ml_handle_client_request(ThreadId tid, UWord* arg, UWord* ret)
          bk->payload  = addr;
          bk->req_szB  = size;
          bk->alloc_ec = VG_(record_ExeContext)(tid, 0);
+         bk->mx       = False;
 
          insert_block_rb(bk);
          add_to_buffer(LOG_ALLOC, addr, 0, size, bk->alloc_ec);
@@ -569,11 +785,20 @@ static void free_rb_tree(rb_root_t *root) {
 
 static void ml_post_clo_init(void)
 {
+   if (clo_mx_round) mx_load_sites();
 }
 
 static void ml_fini(Int exitcode)
 {
    flush_log_buffer();
+   if (clo_mx_round) {
+      VG_(umsg)("MX: esz=%lld mbits=%lld emax=%lld emin=%lld sites=%d\n",
+                clo_mx_esz, clo_mx_mbits, clo_mx_emax, clo_mx_emin, mx_n_sites);
+      VG_(umsg)("MX: blocks_marked=%llu bytes_marked=%llu stores=%llu\n",
+                mx_blocks_marked, mx_bytes_marked, mx_stores);
+      VG_(umsg)("MX: values_changed=%llu values_flushed=%llu unencodable_visits=%llu\n",
+                mx_values_changed, mx_values_flushed, mx_values_unencodable);
+   }
    free_rb_tree(&tracked_blocks);
 }
 
