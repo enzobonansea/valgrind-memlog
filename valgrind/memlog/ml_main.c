@@ -70,6 +70,7 @@ static Long         clo_mx_emin       = -6;
 static const HChar* clo_mx_sites_file = NULL;
 static Bool         clo_mx_list_sites = False;
 static Long         clo_mx_esz        = 8;
+static Long         clo_mx_scale_bits = 8;
 
 static Bool ml_process_cmd_line_option(const HChar* arg)
 {
@@ -81,6 +82,7 @@ static Bool ml_process_cmd_line_option(const HChar* arg)
    else if VG_STR_CLO(arg, "--mx-sites-file", clo_mx_sites_file) {}
    else if VG_BOOL_CLO(arg, "--mx-list-sites", clo_mx_list_sites) {}
    else if VG_BINT_CLO(arg, "--mx-esz", clo_mx_esz, 4, 8) {}
+   else if VG_BINT_CLO(arg, "--mx-scale-bits", clo_mx_scale_bits, 1, 16) {}
    else {
       return VG_(replacement_malloc_process_cmd_line_option)(arg);
    }
@@ -92,11 +94,12 @@ static void ml_print_usage(void)
    VG_(printf)(
 "    --min-block-size=<bytes>  minimum block size to track [%lu]\n"
 "    --mx-round=no|yes         re-encode stores to selected blocks as MX blocks of doubles [no]\n"
-"    --mx-mbits=<0..52>        element mantissa bits kept [3, as E4M3]\n"
+"    --mx-mbits=<0..52>        element mantissa bits kept [3, as E4M3; saturates at 448 * 2^scale]\n"
 "    --mx-emax=<n> --mx-emin=<n>  element exponent range relative to the block scale [8, -6]\n"
 "    --mx-sites-file=<path>    allocating functions (names or 0x statement addresses) to round [all blocks]\n"
 "    --mx-list-sites=no|yes    print the allocating statement of every tracked block [no]\n"
-"    --mx-esz=4|8              element size: float or double [8]\n",
+"    --mx-esz=4|8              element size: float or double [8]\n"
+"    --mx-scale-bits=<1..16>   shared scale exponent bits, as E8M0 [8]\n",
    (unsigned long)PAGE_SIZE
    );
 }
@@ -268,7 +271,7 @@ static Int    mx_n_sites = 0;
 
 static ULong mx_blocks_marked = 0, mx_bytes_marked = 0;
 static ULong mx_stores = 0, mx_values_changed = 0, mx_values_flushed = 0;
-static ULong mx_values_unencodable = 0;
+static ULong mx_blocks_nan = 0, mx_scales_clamped = 0, mx_values_saturated = 0;
 
 static void mx_load_sites(void)
 {
@@ -344,47 +347,120 @@ static INLINE ULong mx_load(const FpFmt* f, Addr a)
 static INLINE void mx_store(const FpFmt* f, Addr a, ULong v)
 { if (f->esz == 8) *(ULong*)a = v; else *(UInt*)a = (UInt)v; }
 
-/* Round one element to the format of an MX block whose largest biased
-   exponent is emax: mbits of mantissa while the element is normal
-   (exponent >= scale + emin), fixed quantum below that, zero far below. */
-static ULong mx_quantize(const FpFmt* f, ULong v, Long e, Long emax)
+/* Significand (implicit bit included) and exponent of its least significant
+   bit for a finite nonzero element, so that |v| = sig * 2^lsb. */
+static INLINE void mx_split(const FpFmt* f, ULong v, ULong* sig, Long* lsb)
 {
-   Long  ue    = e - f->bias;
-   Long  scale = (emax - f->bias) - clo_mx_emax;
-   Long  qe    = (ue - scale >= clo_mx_emin) ? ue - clo_mx_mbits
-                                             : scale + clo_mx_emin - clo_mx_mbits;
-   Long  shift = qe - (ue - f->mant);
-   ULong mmask = (1ULL << f->mant) - 1;
-   ULong sign  = v & (1ULL << (8 * f->esz - 1));
-   if (shift <= 0) return v;
-   if (shift > f->mant + 1 || qe + f->bias <= 0) { mx_values_flushed++; return sign; }
-   if (shift == f->mant + 1) return sign | ((ULong)(qe + f->bias) << f->mant);
-   ULong r = ((1ULL << f->mant) | (v & mmask)) + (1ULL << (shift - 1));
-   r = (r >> shift) << shift;
-   if (r >> (f->mant + 1)) { r >>= 1; e++; }
-   return sign | ((ULong)e << f->mant) | (r & mmask);
+   Long e = (v >> f->mant) & f->emask;
+   *sig = v & ((1ULL << f->mant) - 1);
+   if (e == 0) {
+      *lsb = 1 - f->bias - f->mant;
+   } else {
+      *sig |= 1ULL << f->mant;
+      *lsb = e - f->bias - f->mant;
+   }
 }
 
+/* floor(log2|v|) for a finite nonzero element. */
+static INLINE Long mx_lead(const FpFmt* f, ULong v)
+{
+   ULong sig;
+   Long  lsb;
+   mx_split(f, v, &sig, &lsb);
+   return lsb + 63 - __builtin_clzll(sig);
+}
+
+/* Largest element significand, in units of the top binade's quantum, as
+   microxcaling's max_norm: all mantissa bits set, except E4M3, whose
+   S.1111.111 encoding is NaN, so its largest normal is 1.75 * 2^emax. */
+static INLINE ULong mx_max_sig(void)
+{
+   ULong ones = (1ULL << (clo_mx_mbits + 1)) - 1;
+   return clo_mx_mbits == 3 && clo_mx_emax == 8 ? ones - 1 : ones;
+}
+
+/* Round one finite element of a block with shared exponent `shared`, as
+   microxcaling's _quantize_elemwise_core does on x / 2^shared: mbits of
+   mantissa while the element is normal (exponent >= shared + emin), fixed
+   quantum below that, ties away from zero, saturated to max_norm. Subnormal
+   inputs and outputs are handled, so the result is the exact binary32/64
+   value of the MX element. */
+static ULong mx_quantize(const FpFmt* f, ULong v, Long shared)
+{
+   ULong sign = v & (1ULL << (8 * f->esz - 1));
+   if ((v & ~sign) == 0) return v;
+   ULong sig;
+   Long  lsb;
+   mx_split(f, v, &sig, &lsb);
+   Long  lead  = lsb + 63 - __builtin_clzll(sig);
+   Long  qe    = (lead - shared >= clo_mx_emin ? lead : shared + clo_mx_emin)
+                 - clo_mx_mbits;
+   Long  shift = qe - lsb;
+   if (shift <= 0) return v;
+   ULong r = shift < 64 ? (sig + (1ULL << (shift - 1))) >> shift : 0;
+   if (r == 0) { mx_values_flushed++; return sign; }
+   /* Only the top binade can exceed max_norm, by rounding up or by holding a
+      significand above it. */
+   if (qe == shared + clo_mx_emax - clo_mx_mbits && r > mx_max_sig()) {
+      r = mx_max_sig();
+      mx_values_saturated++;
+   }
+   Long rlead = qe + 63 - __builtin_clzll(r);
+   Long be    = rlead + f->bias;
+   if (be >= f->emask) return sign | ((ULong)f->emask << f->mant);
+   if (be <= 0)
+      return sign | (r << (qe - (1 - f->bias - f->mant)));
+   ULong mmask = (1ULL << f->mant) - 1;
+   return sign | ((ULong)be << f->mant)
+               | ((r << (f->mant - (rlead - qe))) & mmask);
+}
+
+/* Every element of a block whose scale is NaN reads back as a quiet NaN;
+   microxcaling divides by the NaN scale before restoring infinities, so an
+   infinity in the block becomes NaN too. */
+static INLINE ULong mx_nan_element(const FpFmt* f)
+{
+   return ((ULong)f->emask << f->mant) | (1ULL << (f->mant - 1));
+}
+
+/* Shared exponent as microxcaling's _shared_exponents with method "max":
+   floor(log2(max|x|)) - emax, over every element of the block. A scale
+   above the E8M0 range, or an Inf/NaN in the block, makes the scale NaN;
+   a scale below the range is clamped to its minimum. */
 static void mx_encode_block(const FpFmt* f, Block* bk, SizeT bi)
 {
-   Addr  base = bk->payload + bi * MX_BLOCK_ELEMS * f->esz;
-   SizeT left = (bk->req_szB / f->esz) - bi * MX_BLOCK_ELEMS;
-   Int   n    = left < MX_BLOCK_ELEMS ? (Int)left : MX_BLOCK_ELEMS;
-   Long  emax = -1;
+   Addr  base  = bk->payload + bi * MX_BLOCK_ELEMS * f->esz;
+   SizeT left  = (bk->req_szB / f->esz) - bi * MX_BLOCK_ELEMS;
+   Int   n     = left < MX_BLOCK_ELEMS ? (Int)left : MX_BLOCK_ELEMS;
+   ULong sbit  = 1ULL << (8 * f->esz - 1);
+   Long  semax = (1LL << (clo_mx_scale_bits - 1)) - 1;
+   Bool  any = False, nonfinite = False;
+   Long  lmax = 0;
    for (Int i = 0; i < n; i++) {
-      Long e = (mx_load(f, base + i * f->esz) >> f->mant) & f->emask;
-      if (e != 0 && e != f->emask && e > emax) emax = e;
+      ULong v = mx_load(f, base + i * f->esz);
+      if ((v & ~sbit) == 0) continue;
+      if (((v >> f->mant) & f->emask) == (ULong)f->emask) { nonfinite = True; continue; }
+      Long lead = mx_lead(f, v);
+      if (!any || lead > lmax) lmax = lead;
+      any = True;
    }
-   if (emax < 0) return;
+   Long shared = lmax - clo_mx_emax;
+   if (nonfinite || (any && shared > semax)) {
+      mx_blocks_nan++;
+      for (Int i = 0; i < n; i++) {
+         Addr  a = base + i * f->esz;
+         ULong v = mx_load(f, a);
+         ULong q = mx_nan_element(f);
+         if (q != v) { mx_store(f, a, q); mx_values_changed++; }
+      }
+      return;
+   }
+   if (!any) return;
+   if (shared < -semax) { shared = -semax; mx_scales_clamped++; }
    for (Int i = 0; i < n; i++) {
       Addr  a = base + i * f->esz;
       ULong v = mx_load(f, a);
-      Long  e = (v >> f->mant) & f->emask;
-      if (e == 0 || e == f->emask) {
-         if ((v & ~(1ULL << (8 * f->esz - 1))) != 0) mx_values_unencodable++;
-         continue;
-      }
-      ULong q = mx_quantize(f, v, e, emax);
+      ULong q = mx_quantize(f, v, shared);
       if (q != v) { mx_store(f, a, q); mx_values_changed++; }
    }
 }
@@ -792,12 +868,15 @@ static void ml_fini(Int exitcode)
 {
    flush_log_buffer();
    if (clo_mx_round) {
-      VG_(umsg)("MX: esz=%lld mbits=%lld emax=%lld emin=%lld sites=%d\n",
-                clo_mx_esz, clo_mx_mbits, clo_mx_emax, clo_mx_emin, mx_n_sites);
+      VG_(umsg)("MX: esz=%lld mbits=%lld emax=%lld emin=%lld scale_bits=%lld sites=%d\n",
+                clo_mx_esz, clo_mx_mbits, clo_mx_emax, clo_mx_emin,
+                clo_mx_scale_bits, mx_n_sites);
       VG_(umsg)("MX: blocks_marked=%llu bytes_marked=%llu stores=%llu\n",
                 mx_blocks_marked, mx_bytes_marked, mx_stores);
-      VG_(umsg)("MX: values_changed=%llu values_flushed=%llu unencodable_visits=%llu\n",
-                mx_values_changed, mx_values_flushed, mx_values_unencodable);
+      VG_(umsg)("MX: values_changed=%llu values_flushed=%llu values_saturated=%llu\n",
+                mx_values_changed, mx_values_flushed, mx_values_saturated);
+      VG_(umsg)("MX: blocks_nan=%llu scales_clamped=%llu\n",
+                mx_blocks_nan, mx_scales_clamped);
    }
    free_rb_tree(&tracked_blocks);
 }
